@@ -1,0 +1,10 @@
+name: PlasmidBackbone
+account: zaclindsey
+server: shinyapps.io
+appId: 115084
+bundleId: 539382
+url: https://zaclindsey.shinyapps.io/PlasmidBackbone/
+when: 1472011969.95921
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: ArdA.faa|ClusterGroups_6-28.csv|ClusterGroups_8-1.csv|ClusterGroups_july16.csv|getNameClusters.py|Plasmids20-200kb-6-9-2016AA.fa
