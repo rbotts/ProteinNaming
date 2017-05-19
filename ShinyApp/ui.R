@@ -1,7 +1,7 @@
 library(shiny)
 #setwd("~/Documents/Projects/BioPythonTools/ProteinNaming-master")
 
-ClusterGroups <<- read.csv(file="ClusterGroups_8-23.csv",head=FALSE,sep=",")
+ClusterGroups <<- read.csv(file="ClusterGroups.csv",head=FALSE,sep=",")
 ClusterGroups <<- na.omit(ClusterGroups)
 ClusterGroups <<- ClusterGroups[which(ClusterGroups$V1!="Fip"),]
 ClusterGroups <<- ClusterGroups[which(ClusterGroups$V1!="mpR"),]

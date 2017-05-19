@@ -32,17 +32,17 @@ def generateRecords_ZL(input="pcHitTable.csv"):
         if len(row)>0: #Prevents error on empty rows
             gi_num.append(row[1].split("|")[3]) #This just adds the gi number
     Entrez.email = "ryanbotts@pointloma.edu"
-    print "Fetching nucleotide sequences..."
+    #print "Fetching nucleotide sequences..."
     handle=Entrez.efetch(db='nucleotide',id=gi_num,rettype='gb')
-    print "Retrieval complete."
+    #print "Retrieval complete."
     records = []
-    print("Parsing records...")
+    #print("Parsing records...")
     count = 0
     for Record in SeqIO.parse(handle,"genbank"):
         records.append(Record)
         count+=1
-        print "Appending ("+str(count)+")..."
-    print "{0}"+str(records[0:3])
+        #print "Appending ("+str(count)+")..."
+    #print "{0}"+str(records[0:3])
     return records
         
 
@@ -52,7 +52,7 @@ def get_Target_Names(infile="ISCR1extAlign.gb"):
     # built to allow a user to manually remove records from the analysis
     in_handle = open(infile,"rU")
     inseqs = SeqIO.parse(in_handle,"genbank")
-    print "Using name stored in description."
+    #print "Using name stored in description."
     # Full name stored in the record because it was too long to store as the id or name.
     return [record.description.split(' ')[0] for record in inseqs]
 
@@ -66,17 +66,20 @@ def extract_plnames_from_file(infile = "Plasmids.gb"):
     #   csv file with the following columns:  AccNum, Plasmid name, genus, species
     
     outfname = infile.strip(".gb")+".csv"
-    print "Writing names to %s." % outfname
-    print "Records that do not have the term plasmid in their name will be dropped."
-    csv_file = csv.writer(open(outfname,"w"),delimiter=',',dialect=csv.excel)
+    #print "Writing names to %s." % outfname
+    #print "Records that do not have the term plasmid in their name will be dropped."
+    csv_file = csv.writer(open(outfname,"wb"),delimiter=',')
 
     count = 0  # a counter for the number of plasmids in the file
     total = 0  # count the total number of sequences in the file
-    print 'Extracting names from file, requires that the name of the plasmid follows the word plasmid in the genbank description'
+    #print 'Extracting names from file, requires that the name of the plasmid follows the word plasmid in the genbank description'
+	
+    # This will be used when adding inc groups -ZL
+    incGroupDict = make_incGroup_dict()
 
     with open(infile,"rU") as inhandle:
         for sq in SeqIO.parse(inhandle,"genbank"):
-            print sq.description
+            #print sq.description
             total+=1
             Genus=sq.description.split(" ")[0]
             Species=sq.description.split(" ")[1]
@@ -88,7 +91,7 @@ def extract_plnames_from_file(infile = "Plasmids.gb"):
                 #name = sq.description.split("plasmid")[1].split(" ")[1].strip(",").strip(".")
                 try:
                     if len(sq.description.split('plasmid ')[1].split(' ')) > 0:
-                        print "^^"+str(sq.description.split("plasmid "))
+                        #print "^^"+str(sq.description.split("plasmid "))
                         name = sq.description.split('plasmid ')[1].split(' ')[0].strip(",") # take the word after plasmid as the name
                     elif len(sq.description.split('plasmid ')[1].split(' ')) == 0:
                         name = sq.description.split('plasmid')[0].split(' ')[0] # take the word after plasmid as the name
@@ -99,17 +102,37 @@ def extract_plnames_from_file(infile = "Plasmids.gb"):
                         if len(sq.description.split('plasmid,')[0].split(' ')) > 0:
                             stuff = sq.description.split('plasmid,')[1].split(' ')
                             name = stuff[-1].strip(",") # take the word after plasmid as the name
-                print "%%%%%"+name
+                #print "%%%%%"+name
                 
                 count+=1
-                #print count
+                ##print count
             else:
                 continue
-            row = [AccNum,name,Genus,Species]
+				
+	# Get the inc-group for this plasmid using the list made above -ZL
+            group = get_incGroup_from_plasmid(name,incGroupDict)
+            row = [AccNum,name,Genus,Species,group]
             csv_file.writerow(row)
             total+=1
-    print "Found %i seqs in expected list of %i." % (count, total)
+    #print "Found %i seqs in expected list of %i." % (count, total)
 
+def make_incGroup_dict(file="IncGroups.csv"):
+	with open(file,"rU") as inhandle:
+		csv_file = csv.reader(inhandle,delimiter=',')
+		groupDict = {row[0].lower() : row[1].lower() for row in csv_file}
+		return groupDict
+		
+def get_incGroup_from_plasmid(plasmidName, incGroupDict):
+	incGroup = ""
+	try:
+		incGroup = incGroupDict[plasmidName.lower()]
+	except KeyError:
+		incGroup = "Inc?"
+	return incGroup
+
+#========================================================================
+# Fixed for Windows 10 OS (5/18/2017) -ZL
+#========================================================================
 def StripCDSAddInc(ingb,incsv):
     # routine opens a file with plasmid names and inc groups, if known, along with gb file with seqs
     # strips all features from each genbank record found in the csv file and saves the amino acid sequence, named with inc group
@@ -126,19 +149,30 @@ def StripCDSAddInc(ingb,incsv):
     #           ingb with the appendix changed to AA.fa.
     inseqs = SeqIO.parse(open(ingb,"rU"),"genbank")
     
-    seqdict = {x[0]:x for x in GetSeqsAndGroupsFromCSV(incsv)}
+    seqdict = []
+    try:
+        seqdict = {x[0]:x for x in GetSeqsAndGroupsFromCSV(incsv)}
+        print "SUCCESS"
+    except IndexError:
+        print seqdict
+        print GetSeqsAndGroupsFromCSV(incsv)[0:4]
+        print "indErrorInStrip"
     outfa = ingb.strip(".gb")+"AA.fa"
     outhandle = open(outfa,"w")
-    print "Total records in csv file %i", len(seqdict)
-    print "Stripping all CDS's from seqs"
+    #print "Total records in csv file %i", len(seqdict)
+    #print "Stripping all CDS's from seqs"
     
     k=0 #count the number of records
     m=0 # count the number of features
     for record in inseqs:
         #k+=1
         if record.name in seqdict:
-            #print seqdict[record.name]
+            ##print seqdict[record.name]
             plname=seqdict[record.name][1] # Save the plasmid name
+            try:
+                group = seqdict[record.name][4] # Save the group name
+            except IndexError:
+                group = ""
             k+=1
             j = 0 # count the number of orfs on each plasmid
             for feature in record.features:
@@ -153,11 +187,12 @@ def StripCDSAddInc(ingb,incsv):
                             feat_name=feature.qualifiers['gene'][0].replace(" ","")
                         else:
                             feat_name=str(['orfX'+str(j)]).replace(" ","")
-#                        print feat_name + " found on "+ record.id
+                            #print feat_name + " found on "+ record.id
                         try:
                             sq=feature.extract(record)
                             # Using description to store name because the naems are too long with the positions in them
-                            sq.id = feat_name+"_"+plname
+                            #sq.id = feat_name+"_"+plname
+                            sq.id = feat_name+"_"+group+"_"+plname
                             #sq.id = feat_name+"-"+str(j)+"_:_"+group+"_:_"+plname
                             # only right features that are nonempty (not sure why some are)
                             if len(sq)>0:
@@ -165,15 +200,14 @@ def StripCDSAddInc(ingb,incsv):
                                 SeqIO.write(sq,outhandle,"fasta")
                         except ValueError:
                             print "Referenced another sequence..."
-            
                 except KeyError:
-                    print record.id + ' has no gene features, skipping sequence'
+                        print record.id + ' has no gene features, skipping sequence'
         #else:
-        #    print record.name+" not found in csv"
+        #    #print record.name+" not found in csv"
     outhandle.close()
 
-    print "%s sequences in analysis" % k
-    print "%s features for analysis" % m
+    #print "%s sequences in analysis" % k
+    #print "%s features for analysis" % m
 
 
 def extract_seqs_from_file(infile = "ISCR1Keeps.csv",targetfile = "ISCR1Align.gb", outseqfile = "ISCR1AlignSubset"):
@@ -202,11 +236,11 @@ def extract_seqs_from_file(infile = "ISCR1Keeps.csv",targetfile = "ISCR1Align.gb
         outname =  outseqfile + '.fasta'
 
     count = 0
-    print 'Extracting features from file.  Sequence name must be a subset of names in'
+    #print 'Extracting features from file.  Sequence name must be a subset of names in'
     outseqhandle = open(outname, 'w')
     
     for sqname in seqnames:
-        print "Searching for %s" % sqname
+        #print "Searching for %s" % sqname
         for sq in SeqIO.parse(open(targetfile,"rU"),type):
         
             if type == "genbank":
@@ -216,42 +250,36 @@ def extract_seqs_from_file(infile = "ISCR1Keeps.csv",targetfile = "ISCR1Align.gb
                 sqnm = sq.id
             
             if sqnm in sqname:
-                print "record id %s" % sq.id
+                #print "record id %s" % sq.id
     
     #for sq in SeqIO.parse(seqhandle,type):
-    #    print sq.id
+    #    #print sq.id
     #    if any(sq.id in sqname for sqname in seqnames):
                 SeqIO.write(sq, outseqhandle, type)
                 count+=1
     outseqhandle.close()
 
-    print "Found %i seqs in expected list of %i." % (count, len(seqnames))
+    #print "Found %i seqs in expected list of %i." % (count, len(seqnames))
 
 
 #========================================================================
-# Note that this method had to be modified to work on a MAC, approx 2000 rows of the table were not read in
+# Fixed for Windows 10 OS (5/18/2017) - ZL
+#========================================================================
+
 def GetSeqsAndGroupsFromCSV(infile):
     ### Reads csv file with Acc number, name and Inc Group
     # Assumes table format AccNum, Name, Genus, Species, Group(optional)
     # Keeps track of Inc Group if known, otherwise assigned IncUKN
     # Returns list, where each entry has this info
-    print "Reading sequences and groups from CSV file, check that file contains updated Inc groups"
+    #print "Reading sequences and groups from CSV file, check that file contains updated Inc groups"
     with open(infile,"rU") as inhandle:
-        csv_file = csv.reader(inhandle,delimiter=',',dialect=csv.excel)
-        #Reads csv file and adds unknown group if that column is unknown
-        try:
-            out = [row if row[4]!= "" else row[0:4] +["IncUNK"] for row in csv_file]
-        except IndexError:
-            csv_file = csv.reader(inhandle,delimiter=',',dialect=csv.excel)
-            out = [row for row in csv_file]
-
+        csv_file = csv.reader(inhandle,delimiter=',')
+        out = [row for row in csv_file]
         # for some reason this line causes rows to be skipped and I can't find the pattern
         #out = out[1:][::2] # Slicing: to eliminate blank lines on Windows OS
+        print out
 
         return out
-
-
-
 
 ### Tools for handling the output of USEARCH clustering
 def get_clusters(clusterfilename):
@@ -262,7 +290,7 @@ def get_clusters(clusterfilename):
     #        center of cluster begins with a S in the first column and name in the 9th column
     # output:
     #     groups - list containing all elements of each cluster
-    print "May not correctly extract clusters of singletons"
+    #print "May not correctly extract clusters of singletons"
     groups = []  # empty dictionary to store each cluster
     
     with open(clusterfilename, 'rU') as f:
@@ -295,8 +323,8 @@ def get_clust_name(pro_list):
     #   3.  the first 6 (for 4 letter names with a number) letter named protein in the list
     #   4.  the first protein name in the list that is not hypothetical or orf
    
-    #print 'Creating protein family names, attempting to name the cluster'
-    #print 'Uses the following names if possible:  sul1, qacEdelta, blaCTX-M,aac, aad4'
+    ##print 'Creating protein family names, attempting to name the cluster'
+    ##print 'Uses the following names if possible:  sul1, qacEdelta, blaCTX-M,aac, aad4'
     
     # keep track of how long the name is and whether it is the best we have or not.
     min_len_name = 0
@@ -362,12 +390,12 @@ if __name__=="__main__":
     # prior to running matrices through heat map, removed all proteins found in 2 or fewer sequences.
 
     proj = "Plasmids20-200kb-6-9-2016"
-    #extract_plnames_from_file(proj+".gb")
+    extract_plnames_from_file(proj+".gb")
 #==============================================================================
 # Had to modify code to work on a MAC
 #  there should be ~4349 plasmids and ~328435 sequences, but without the update there were only ~2300 plasmids
 #==============================================================================
-    #StripCDSAddInc(proj+".gb",proj+".csv")
-    os.system('./usearch -cluster_fast '+proj+'AA.fa -id 0.5 -target_cov 0.7 -centroids clust_'+proj+'.fasta -uc '+proj+'_Clusters.tab -userfields query+target+id+ql+tl+alnlen+qcov+tcov')
+    StripCDSAddInc(proj+".gb",proj+".csv")
+    os.system('usearch.exe -cluster_fast '+proj+'AA.fa -id 0.7 -target_cov 0.7 -centroids clust_'+proj+'.fasta -uc '+proj+'_Clusters.tab -userfields query+target+id+ql+tl+alnlen+qcov+tcov')
     #os.system('./usearch -cluster_fast clust_'+proj+'.fasta -id 0.5 -target_cov 0.5 -centroids '+proj+'_2nd.fasta -uc '+proj+'Clusters_2nd.tab -userfields query+target+id+ql+tl+alnlen+qcov+tcov')
 

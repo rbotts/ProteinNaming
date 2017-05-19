@@ -114,6 +114,7 @@ shinyServer(function(input, output) {
       CG3$V7<-c(1:nrow(CG3)) # CRITICAL: Used for labeling and position!
       # Will be the same as V7 if no subset
       
+      CG3$V8 <- FALSE
       references <- tolower(c("R7K","R46","pRA3","pKJK5","RK2","RP4","pNDM-1_Dok01"))
       cids <- c()
       for (cRow in c(1:nrow(CG3)))
@@ -121,7 +122,7 @@ shinyServer(function(input, output) {
         plasmid <- strsplit(as.character(CG3$V3[cRow]),"_")[[1]]
         if(length(plasmid)>2)
         {
-          plasmid <- plasmid[2:length(plasmid)]
+          plasmid <- plasmid[3:length(plasmid)]
           plasmid <- paste(plasmid,collapse="_")
         }
         else
@@ -131,10 +132,10 @@ shinyServer(function(input, output) {
         if (tolower(plasmid) %in% references)
         {
           cids <- c(cids, CG3$V2[cRow])
+          CG3$V8[cRow] <- TRUE
         }
       }
-      cids2 <- unique(cids)
-      CG3$V8 <- FALSE
+      print(cids)
       CG3[which(CG3$V2 %in% cids),"V8"] <- TRUE
       
       CG3<-subsetData(CG3,input$ranges)
@@ -150,11 +151,11 @@ shinyServer(function(input, output) {
                )+
                scale_y_continuous()+
                scale_x_discrete()+ # Remove extra space
-               geom_text(size=1.75,y=max(CG3$V4)/2.0,
+               geom_text(size=1.00,y=max(CG3$V4)/2.0,
                          fontface=ifelse(CG3$V8,"bold","plain"),
                          label=CG3$V3,
                          color="black") +
-               geom_label(size=1.5,y=-5,
+               geom_text(size=1.5,y=-5,
                          aes(label=rev(CG3$V7)),
                          color="black") +
               coord_flip() +
@@ -165,8 +166,8 @@ shinyServer(function(input, output) {
                      axis.title.y=element_text(size=2))
 
       ggsave(filename = paste("BarGraphs/",backbone,"_temp.png",sep=''), 
-             height = 25+as.integer(25*(13*nrow(CG3))/150.0), 
-             width=2.2*25, 
+             height = 25+as.integer(25*(11*nrow(CG3))/150.0), 
+             width=3.0*25, 
              units="mm", 
              limitsize = FALSE)
       
