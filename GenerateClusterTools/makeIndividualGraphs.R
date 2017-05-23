@@ -18,6 +18,7 @@ maxx <- max(x)
 # something to do with multithreading. -ZL (5/18/2017)
 #==========================================================
 ClusterGroups$V8 <- FALSE
+ClusterGroups$V9 <- FALSE
 references <- tolower(c("R7K","R46","pRA3","pKJK5","RK2","RP4","pNDM-1_Dok01"))
 cids <- c()
 for (cRow in c(1:nrow(ClusterGroups)))
@@ -35,7 +36,7 @@ for (cRow in c(1:nrow(ClusterGroups)))
   if (tolower(plasmid) %in% references)
   {
     cids <- c(cids, ClusterGroups$V2[cRow])
-    ClusterGroups$V8[cRow] <- TRUE
+    ClusterGroups$V9[cRow] <- TRUE
   }
 }
 
@@ -85,10 +86,14 @@ makePlot <- function (backbone)
     )+
     scale_y_continuous()+
     scale_x_discrete()+ # Remove extra space
-    geom_text(size=1.00,y=max(CG3$V4)/2.0,
+    geom_label(size=1.00,y=max(CG3$V4)/2.0,
               fontface=ifelse(CG3$V8,"bold","plain"),
               label=CG3$V3,
-              color="black") +
+              color=ifelse(CG3$V9,"red","black"),
+              label.padding = unit(0.05,"lines"),
+              label.r = unit(0.05,"lines"),
+              label.size = .01,
+              alpha = .5) +
     geom_text(size=1.5,y=-5,
                aes(label=rev(CG3$V7)),
                color="black") +
@@ -111,10 +116,14 @@ makePlot <- function (backbone)
     )+
     scale_y_continuous()+
     scale_x_discrete()+ # Remove extra space
-    geom_text(size=1.00,y=max(CG3_AA$V4)/2.0,
+    geom_label(size=1.00,y=max(CG3_AA$V4)/2.0,
               fontface=ifelse(CG3_AA$V8,"bold","plain"),
               label=CG3_AA$V3,
-              color="black") +
+              color=ifelse(CG3$V9,"red","black"),
+              label.padding = unit(0.05,"lines"),
+              label.r = unit(0.05,"lines"),
+              label.size = .01,
+              alpha = .5) +
     geom_text(size=1.5,y=-5,
               aes(label=rev(CG3_AA$V7)),
               color="black") +

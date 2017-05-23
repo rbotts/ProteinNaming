@@ -2,128 +2,128 @@ library(shiny)
 library(datasets)
 library(ggplot2)
 library(seqinr)
-#library(msa)  # used for sequence alignments
+library(ggtree)
+library(msa)  # used for sequence alignments
 # msa will only output a nice alignment as a pdf
 # png and animation packages allow us to convert to a png and then open as a plot
-library(png) 
+library(png)
 library(animation)
 library(ape)  # used for phylogenetic trees
 
 shinyServer(function(input, output) {
   
-  getHeight<-function() 
+  # getHeight() returns a dynamic height for ggplots rendered "on the fly."
+  # getHeight() calculates the height based on the number of rows the user selects.
+  getHeight <- function()
   {
-      return(
-        exprToFunction(
-          
-          if(
-          (50+13*nrow(
-            if(input$Subset)
-            {
-              subsetData(
-                ClusterGroups[which(ClusterGroups$V1==input$variable),],input$ranges)
-            }
-            else
-            {
-              ClusterGroups[which(ClusterGroups$V1==input$variable),]
-            }
-            )
-           )<32000
-          )
-          {
-            (50+13*nrow(
-              if(input$Subset)
-              {
-                subsetData(
-                  ClusterGroups[which(ClusterGroups$V1==input$variable),],input$ranges)
-              }
-              else
-              {
-                ClusterGroups[which(ClusterGroups$V1==input$variable),]
-              }
-            ))
-          }
-          else
-          {
-            32000
-          }
-          )
-        )
+    return(exprToFunction(if ((50 + 13 * nrow(if (input$Subset)
+    {
+      subsetData(ClusterGroups[which(ClusterGroups$V1 == input$variable), ], input$ranges)
+    }
+    else
+    {
+      ClusterGroups[which(ClusterGroups$V1 == input$variable), ]
+    })) < 32000) # I had to take a best guess at the maximum render height
+    {
+      (50 + 13 * nrow(if (input$Subset)
+      {
+        subsetData(ClusterGroups[which(ClusterGroups$V1 == input$variable), ], input$ranges)
+      }
+      else
+      {
+        ClusterGroups[which(ClusterGroups$V1 == input$variable), ]
+      }))
+    }
+    else
+    {
+      # I had to take a guess at what the maximum allowed height was
+      32000 # Much past 32,000, the renderer would start throwing errors
+    }))
   }
   
   output$proteinPlot <- renderImage({
     backbone <- input$variable
+    
+    # If the user is not subsetting anything, we will use a pre-rendered plot.
+    # This was implemented to save time and make the process faster. -ZL
     if (!input$Subset)
     {
       if (input$arrange == "Sequence Length")
       {
-      filename <- normalizePath(file.path('./BarGraphs',
-                                          paste(backbone, '.png', sep='')))
-      list(src = filename)
+        filename <- normalizePath(file.path('./BarGraphs',
+                                            paste(backbone, '.png', sep =
+                                                    '')))
+        list(src = filename)
       }
       else
       {
         filename <- normalizePath(file.path('./BarGraphs',
-                                            paste(backbone, '_AA.png', sep='')))
+                                            paste(backbone, '_AA.png', sep =
+                                                    '')))
         list(src = filename)
       }
       
     }
+    
+    # The case where a new plot needs to be rendered to accomodate a
+    # user's choice of subset.
     else if (input$Subset)
     {
+      # Get the cluster items relevant to the choice of backbone
+      CG2 <- ClusterGroups[which(ClusterGroups$V1 == backbone), ]
       
-    # x=c()
-    # 
-    # group <- unique(ClusterGroups$V1)
-    # 
-    # for (id in group)
-    # {
-    #   x<-c(x,(nrow(ClusterGroups[which(ClusterGroups$V1==id),])))
-    # }
-    # maxx <- max(x)
-    # 
-      CG2 <- ClusterGroups[which(ClusterGroups$V1==backbone),]
+      # Generate a unique color for each cluster
       cols <- rainbow(length(unique(CG2$V2)))
-      CG2$V6 <- c(1:nrow(CG2))
-      rC<<-nrow(ClusterGroups)
       
+      # V6 used to assign colors to each cluster
+      CG2$V6 <- c(1:nrow(CG2))
+      
+      # Assign colors to each clusters
       index = 1
       for (i in unique(CG2$V2))
       {
-        CG2$V6[which(CG2$V2==i)] <- cols[index]
+        # Note that, as we would expect, all of the ones in the same cluster
+        # will have the same color
+        CG2$V6[which(CG2$V2 == i)] <- cols[index]
         index = index + 1
       }
-
+      
       # Chunk to ensure correct data formatting
       # These few lines may be unnecessary
-      CG2$V5[which(CG2$V5=="*")] <- "100.0" #"100.0" 
-      CG2$V5<-as.double(as.character(CG2$V5))
+      CG2$V5[which(CG2$V5 == "*")] <- "100.0" #"100.0"
+      CG2$V5 <- as.double(as.character(CG2$V5))
       CG2$V5[which(is.na(CG2$V5))] <- 0.0
       CG2$V4 <- as.double(CG2$V4)
-      CG2$V5 <- CG2$V5/100.00
-
+      CG2$V5 <- CG2$V5 / 100.00
+      
+      # Order by either sequence length or cluster
       if (input$arrange == "Sequence Length")
       {
-        CG3 <- CG2[order(CG2$V4),] # CRITICAL: Allow the reordering of colors!
+        CG3 <-
+          CG2[order(CG2$V4), ]
       }
       else
       {
-        CG3 <- CG2
+        CG3 <- CG2 # This case will "order by cluster."
       }
       
-      CG3$V7<-c(1:nrow(CG3)) # CRITICAL: Used for labeling and position!
-      # Will be the same as V7 if no subset
-      
+      # V7 is used for labeling
+      CG3$V7 <-
+        c(1:nrow(CG3))
+
+      # V8 says whether there is a reference plasmid in the *cluster*
+      # V9 says whether the *specific protein* comes from a reference plasmid
       CG3$V8 <- FALSE
-      references <- tolower(c("R7K","R46","pRA3","pKJK5","RK2","RP4","pNDM-1_Dok01"))
-      cids <- c()
+      CG3$V9 <- FALSE
+      references <- tolower(as.character(References$V1))
+      cids <- c() # Contains cluster IDs
       for (cRow in c(1:nrow(CG3)))
       {
-        plasmid <- strsplit(as.character(CG3$V3[cRow]),"_")[[1]]
-        if(length(plasmid)>2)
+        plasmid <- strsplit(as.character(CG3$V3[cRow]), "_")[[1]]
+        if (length(plasmid) > 2)
         {
           plasmid <- plasmid[3:length(plasmid)]
-          plasmid <- paste(plasmid,collapse="_")
+          plasmid <- paste(plasmid, collapse = "_")
         }
         else
         {
@@ -132,82 +132,112 @@ shinyServer(function(input, output) {
         if (tolower(plasmid) %in% references)
         {
           cids <- c(cids, CG3$V2[cRow])
-          CG3$V8[cRow] <- TRUE
+          CG3$V9[cRow] <- TRUE #This *specific protein* comes from a reference
         }
       }
-      print(cids)
-      CG3[which(CG3$V2 %in% cids),"V8"] <- TRUE
+      # Note the ones that are in a *cluster* containing a reference plasmid
+      CG3[which(CG3$V2 %in% cids), "V8"] <- TRUE
       
-      CG3<-subsetData(CG3,input$ranges)
+      # Take a subset (method from global.R)
+      CG3 <- subsetData(CG3, input$ranges)
       
-      #CG3$V8<-c(1:nrow(CG3)) # CRITICAL: Used for labeling and position!
+      # seqData is only used if user tries to download
+      seqData <<-
+        as.character(CG3$V3)
       
-      seqData <<- as.character(CG3$V3) # CRITICAL: Used to write file
+      # Generate the plot.
+      ggplot(CG3, aes(x = c(1:nrow(CG3)), y = CG3$V4)) + # Notice X position is determined by V7
+        geom_bar(stat = "identity",
+                 fill = CG3$V6,
+                 alpha = CG3$V5) +
+        scale_y_continuous() +
+        scale_x_discrete() + # Remove extra space
+        
+        # Protein name labels
+        geom_label(
+          size = 1.00,
+          y = max(CG3$V4) / 2.0,
+          fontface = ifelse(CG3$V8, "bold", "plain"),
+          label = CG3$V3,
+          color = ifelse(CG3$V9, "red", "black"),
+          label.padding = unit(0.05, "lines"),
+          label.r = unit(0.05, "lines"),
+          label.size = .01,
+          alpha = .5
+        ) +
+        
+        # Bar number labels (somewhat arbitary)
+        geom_text(size = 1.5,
+                  y = -5,
+                  aes(label = rev(CG3$V7)),
+                  color = "black") +
+        coord_flip() +
+        ggtitle(backbone) +
+        labs(y = "Sequence Length", x = "") +
+        theme(axis.text.y = element_text(size = 1),
+              axis.title.y = element_text(size = 2))
       
-      ggplot(CG3,aes(x=c(1:nrow(CG3)),y=CG3$V4))+ # Notice X position is determined by V7
-               geom_bar(stat="identity",
-                        fill=CG3$V6,
-                        alpha=CG3$V5
-               )+
-               scale_y_continuous()+
-               scale_x_discrete()+ # Remove extra space
-               geom_text(size=1.00,y=max(CG3$V4)/2.0,
-                         fontface=ifelse(CG3$V8,"bold","plain"),
-                         label=CG3$V3,
-                         color="black") +
-               geom_text(size=1.5,y=-5,
-                         aes(label=rev(CG3$V7)),
-                         color="black") +
-              coord_flip() +
-               ggtitle(backbone)+
-              labs(y="Sequence Length",x="")+
-               theme(
-                     axis.text.y=element_text(size=1),
-                     axis.title.y=element_text(size=2))
-
-      ggsave(filename = paste("BarGraphs/",backbone,"_temp.png",sep=''), 
-             height = 25+as.integer(25*(11*nrow(CG3))/150.0), 
-             width=3.0*25, 
-             units="mm", 
-             limitsize = FALSE)
+      # The weird height values are mostly calculated from trial and error
+      ggsave(
+        filename = paste("BarGraphs/", backbone, "_temp.png", sep = ''),
+        height = 25 + as.integer(25 * (11 * nrow(CG3)) / 150.0),
+        width = 3.0 * 25,
+        units = "mm",
+        limitsize = FALSE
+      )
       
-      list(src = paste("BarGraphs/",backbone,"_temp.png",sep=''))
+      # Return the graph
+      list(src = paste("BarGraphs/", backbone, "_temp.png", sep = ''))
     }
   },
-  deleteFile = FALSE
-  #height=getHeight() # WEIRD!!!
+  deleteFile = FALSE # May lead to problems? -ZL
+  #height=getHeight() # This was used when we used renderPlot()
   )
   
   output$alignment <- renderPrint({
-    # # read sequence alignments
-    # # this code may fail if the family only has one cluster
-    # fpath <- file.path(".","SeqAlignments",paste0(input$variable,".fa"),fsep = .Platform$file.sep)
-    # validate(
-    #   need(file.exists(fpath), paste(input$variable, "failed to align, may be too many clusters, or single clusters."))
-    # )
-    # #align <- read.alignment(file = fpath,format = "fasta")
-    # #print(align)
-    # align <- readAAStringSet(fpath, format = "fasta")
-    # #print(msa(align))#, show = "complete")
-    # msaPrettyPrint(msa(align),output = "pdf", file = "TempAlign.pdf", showNames="left", 
-    #                showLogo="none", shadingMode = "similar", showConsensus = "top", 
-    #                askForOverwrite=FALSE)
-    # file.rename("TempAlign.pdf", "./www/TempAlign.pdf")
+    # read sequence alignments
+    # this code may fail if the family only has one cluster
+    fpath <- file.path("SeqAlignments", paste0(input$variable, ".fa"))
+    validate(need(
+      file.exists(fpath),
+      paste(
+        input$variable,
+        "failed to align, may be too many clusters, or single clusters."
+      )
+    ))
+    #align <- read.alignment(file = fpath,format = "fasta")
+    #print(align)
+    align <- readAAStringSet(fpath, format = "fasta")
+    #print(msa(align))#, show = "complete")
+    msaPrettyPrint(
+      msa(align),
+      showNames = "left",
+      showLogo = "none",
+      shadingMode = "similar",
+      showConsensus = "top",
+      askForOverwrite = FALSE
+    )
+    texi2pdf("msaPrettyPrintOutput.tex", clean = TRUE)
+    file.rename("TempAlign.pdf", "./www/TempAlign.pdf")
   })
   
   output$ptrees <- renderPlot({
-    # # read phylogenetic trees from previously computed newick tree
-    # # this code may fail if the family only has one cluster
-    # fpath <- file.path(".","SeqTrees",paste0(input$variable,".nwk"),fsep = .Platform$file.sep)
+    # read phylogenetic trees from previously computed newick tree
+    # this code may fail if the family only has one cluster
+    
+    fpath <- file.path("SeqTreesTest", paste0(input$variable, ".nwk"))
     # validate(
     #   need(file.exists(fpath), paste(input$variable, "has 2 or fewer clusters, tree is meaningless"))
-    # )  
-    # tree <- read.tree(file = fpath)
-    # plot.phylo(tree)
-   })
-  
-  output$downloadData <- downloadHandler(
+    # )
+    tree <- read.tree(fpath)
+    ggplot(tree, aes(x, y)) + geom_tree() + theme_tree() + geom_tiplab()
     
+  }, height = getHeight())
+  
+  # This is supposed to be the download feature.
+  # Offline, it gives the correct file output, but also throws an error.
+  # Online, it just crashes the shinyapp server. (5/23/2017) -ZL
+  output$downloadData <- downloadHandler(
     # This function returns a string which tells the client
     # browser what name to use when saving the file.
     filename = function() {
@@ -217,17 +247,16 @@ shinyServer(function(input, output) {
     # This function should write data to a file given to it by
     # the argument 'file'.
     content = function(file) {
-
       print("READING FASTA... (MAY TAKE UP TO 5 MINUTES)")
-      plasmidAA <- read.fasta("Plasmids20-200kb-6-9-2016AA.fa","AA")
+      plasmidAA <- read.fasta("Plasmids20-200kb-6-9-2016AA.fa", "AA")
       print("FINISHED FASTA READ")
       
       writeSeqs <- function(seq)
       {
-        seqName <- attr(seq,"name")
-        if (grepl("<unknown description>",seqName))
+        seqName <- attr(seq, "name")
+        if (grepl("<unknown description>", seqName))
         {
-          seqName <- strsplit(seqName," ")[[1]][1]
+          seqName <- strsplit(seqName, " ")[[1]][1]
         }
         if (seqName %in% seqData)
         {
@@ -236,38 +265,38 @@ shinyServer(function(input, output) {
           print("DONE WITH A RETURN")
         }
       }
-      Seqs <<- lapply(plasmidAA,writeSeqs)
-      Seqs<-Seqs[!sapply(Seqs, is.null)] # REMOVE NULL seqs 
-                                         # (since lapply return same length)
+      Seqs <<- lapply(plasmidAA, writeSeqs)
+      Seqs <- Seqs[!sapply(Seqs, is.null)] # REMOVE NULL seqs
+      # (since lapply return same length)
       print("DONE")
       print(input$variable)
       fourName <- input$variable
       for (i in c(1:length(Seqs)))
       {
-        seqName <- attr(Seqs[i],"name")
+        seqName <- attr(Seqs[i], "name")
         print("1")
-        if (length(seqName)>0)
+        if (length(seqName) > 0)
         {
-          if (grepl("<unknown description>",seqName))
+          if (grepl("<unknown description>", seqName))
           {
             print("2")
-            seqName <- strsplit(seqName," ")[[1]][1]
+            seqName <- strsplit(seqName, " ")[[1]][1]
             print("3")
           }
         }
-        if (i!=1)
+        if (i != 1)
         {
-        sNames <- c(sNames,paste(fourName,seqName,sep="_"))
+          sNames <- c(sNames, paste(fourName, seqName, sep = "_"))
         }
         else
         {
-        sNames <- c(paste(fourName,seqName,sep="_"))
+          sNames <- c(paste(fourName, seqName, sep = "_"))
         }
       }
       print(sNames)
       print(Seqs)
-      write.fasta(Seqs,sNames,
-                  file.out=paste(fourName, "faa", sep = "."))
+      write.fasta(Seqs, sNames,
+                  file.out = paste(fourName, "faa", sep = "."))
     }
   )
 })

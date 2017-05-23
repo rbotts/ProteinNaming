@@ -1,6 +1,6 @@
-# Some of the reversals in this function
-# will be difficult to follow, but are necessary
-# 6/30/2016
+# This function basically returns a subsetted dataframe.
+# I'm not sure if it was necessary to make in global.R
+# instead of server.R. -ZL
 
 subsetData <- function(data,ranges)
 {

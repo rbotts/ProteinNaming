@@ -1,6 +1,8 @@
 library(shiny)
 #setwd("~/Documents/Projects/BioPythonTools/ProteinNaming-master")
 
+# Load items to be used on both the server and UI, save them to global space
+References <<- read.csv(file="90PlasmidsAndIncGroups.csv",head=FALSE,sep=",")
 ClusterGroups <<- read.csv(file="ClusterGroups.csv",head=FALSE,sep=",")
 ClusterGroups <<- na.omit(ClusterGroups)
 ClusterGroups <<- ClusterGroups[which(ClusterGroups$V1!="Fip"),]
@@ -32,9 +34,14 @@ shinyUI(fluidPage(
     mainPanel(
       tabsetPanel(
         tabPanel("Plot of protein families",
-          h3("Plot of this protein (
-             may take a few min to render)"),
-          h5("Bold labeled font = matched a reference plasmid"),
+          h4("Legend"), 
+          strong("Red colored and bold font:",style="color:red"), br(),
+          em("This sequence comes from a reference plasmid."), br(), br(),
+          strong("Black colored and bold font:"), br(),
+          em("This sequence is in a cluster that contains at least one sequence from a reference plasmid."), br(), br(),
+          div("Black colored and plain font:"),
+          em("This sequence neither came from a reference plasmid nor is in a cluster that contains one."), br(),
+         
           plotOutput("proteinPlot")
         ),
         tabPanel("Alignments", 
