@@ -194,44 +194,19 @@ shinyServer(function(input, output) {
   #height=getHeight() # This was used when we used renderPlot()
   )
   
-  output$alignment <- renderPrint({
-    # read sequence alignments
-    # this code may fail if the family only has one cluster
-    fpath <- file.path("SeqAlignments", paste0(input$variable, ".fa"))
-    validate(need(
-      file.exists(fpath),
-      paste(
-        input$variable,
-        "failed to align, may be too many clusters, or single clusters."
-      )
-    ))
-    #align <- read.alignment(file = fpath,format = "fasta")
-    #print(align)
-    align <- readAAStringSet(fpath, format = "fasta")
-    #print(msa(align))#, show = "complete")
-    msaPrettyPrint(
-      msa(align),
-      showNames = "left",
-      showLogo = "none",
-      shadingMode = "similar",
-      showConsensus = "top",
-      askForOverwrite = FALSE
-    )
-    texi2pdf("msaPrettyPrintOutput.tex", clean = TRUE)
-    file.rename("TempAlign.pdf", "./www/TempAlign.pdf")
-  })
-  
   output$ptrees <- renderPlot({
     # read phylogenetic trees from previously computed newick tree
     # this code may fail if the family only has one cluster
     
     fpath <- file.path("SeqTreesTest", paste0(input$variable, ".nwk"))
-    # validate(
-    #   need(file.exists(fpath), paste(input$variable, "has 2 or fewer clusters, tree is meaningless"))
-    # )
+     validate(
+       need(file.exists(fpath), paste(input$variable, "has 2 or fewer clusters, tree is meaningless"))
+     )
     tree <- read.tree(fpath)
-    ggplot(tree, aes(x, y)) + geom_tree() + theme_tree() + geom_tiplab()
-    
+    ggtree(tree, branch.length = "none") + geom_tiplab(color="purple",hjust = 1.0,vjust=-0.75)+
+    geom_nodepoint(color="#b5e521", alpha=3/8, size=8)+
+    geom_tippoint(color="purple", shape=20, size=4)
+
   }, height = getHeight())
   
   # This is supposed to be the download feature.
@@ -299,4 +274,17 @@ shinyServer(function(input, output) {
                   file.out = paste(fourName, "faa", sep = "."))
     }
   )
+  
+  output$Align <- downloadHandler(
+    
+    filename <- function() {
+      return(paste0(input$variable,".faa"))
+    },
+    
+    content <- function(file){
+      seqAlign <- read.fasta(paste0("SeqAlignments/",input$variable,".fa"), "AA")
+      write.fasta(seqAlign, names = attr(seqAlign,"name"),file)
+    }
+    
+    )
 })

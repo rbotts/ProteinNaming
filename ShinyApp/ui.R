@@ -1,9 +1,10 @@
 library(shiny)
+library(plotly)
 #setwd("~/Documents/Projects/BioPythonTools/ProteinNaming-master")
 
 # Load items to be used on both the server and UI, save them to global space
 References <<- read.csv(file="90PlasmidsAndIncGroups.csv",head=FALSE,sep=",")
-ClusterGroups <<- read.csv(file="ClusterGroups.csv",head=FALSE,sep=",")
+ClusterGroups <<- read.csv(file="ClusterGroups_5-30-17.csv",head=FALSE,sep=",")
 ClusterGroups <<- na.omit(ClusterGroups)
 ClusterGroups <<- ClusterGroups[which(ClusterGroups$V1!="Fip"),]
 ClusterGroups <<- ClusterGroups[which(ClusterGroups$V1!="mpR"),]
@@ -42,13 +43,12 @@ shinyUI(fluidPage(
           div("Black colored and plain font:"),
           em("This sequence neither came from a reference plasmid nor is in a cluster that contains one."), br(),
          
-          plotOutput("proteinPlot")
+          plotlyOutput("proteinPlot")
         ),
         tabPanel("Alignments", 
                  h5("Download and reopen the linked alignment after updating the protein family."),
                  h5("Proteins with more than 100 protein families, may not have alignments due to memory constraints."),
-                 shiny::a("Open alignment.",target="_blank",href="TempAlign.pdf"),
-                 textOutput("alignment")
+                 downloadButton("Align","Download alignment")
         ),
         tabPanel("Phylogenetic trees",
                  h5("Computing phylogenetic tree may take a few minutes.  "),
