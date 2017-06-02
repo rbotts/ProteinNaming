@@ -4,10 +4,9 @@ library(plotly)
 
 # Load items to be used on both the server and UI, save them to global space
 References <<- read.csv(file="90PlasmidsAndIncGroups.csv",head=FALSE,sep=",")
-ClusterGroups <<- read.csv(file="ClusterGroups_5-30-17.csv",head=FALSE,sep=",")
+ClusterGroups <<- read.csv(file="ClusterGroups_6-1-2017.csv",head=FALSE,sep=",")
 ClusterGroups <<- na.omit(ClusterGroups)
-ClusterGroups <<- ClusterGroups[which(ClusterGroups$V1!="Fip"),]
-ClusterGroups <<- ClusterGroups[which(ClusterGroups$V1!="mpR"),]
+Descriptions <<- read.csv(file="BackboneDescriptions_6-2-2017.csv",head=FALSE,sep=",")
 
 shinyUI(fluidPage(
   titlePanel("Plasmid Backbone Families"),
@@ -17,8 +16,8 @@ shinyUI(fluidPage(
       selectInput("variable", "Backbone Protein Name:",
                 choices=names(
                   setNames(
-                    unique(ClusterGroups$V1),
-                    unique(ClusterGroups$V1)
+                    unique(Descriptions$V1),
+                    unique(Descriptions$V1)
                   )
                 )
       ),
@@ -35,15 +34,8 @@ shinyUI(fluidPage(
     mainPanel(
       tabsetPanel(
         tabPanel("Plot of protein families",
-          h4("Legend"), 
-          strong("Red colored and bold font:",style="color:red"), br(),
-          em("This sequence comes from a reference plasmid."), br(), br(),
-          strong("Black colored and bold font:"), br(),
-          em("This sequence is in a cluster that contains at least one sequence from a reference plasmid."), br(), br(),
-          div("Black colored and plain font:"),
-          em("This sequence neither came from a reference plasmid nor is in a cluster that contains one."), br(),
-         
-          plotlyOutput("proteinPlot")
+                uiOutput("description"),
+                 plotlyOutput("proteinPlot")
         ),
         tabPanel("Alignments", 
                  h5("Download and reopen the linked alignment after updating the protein family."),

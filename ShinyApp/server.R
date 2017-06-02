@@ -12,63 +12,25 @@ library(ape)  # used for phylogenetic trees
 
 shinyServer(function(input, output) {
   
-  # getHeight() returns a dynamic height for ggplots rendered "on the fly."
-  # getHeight() calculates the height based on the number of rows the user selects.
-  getHeight <- function()
-  {
-    return(exprToFunction(if ((50 + 13 * nrow(if (input$Subset)
+  output$description <- renderUI(
     {
-      subsetData(ClusterGroups[which(ClusterGroups$V1 == input$variable), ], input$ranges)
-    }
-    else
-    {
-      ClusterGroups[which(ClusterGroups$V1 == input$variable), ]
-    })) < 32000) # I had to take a best guess at the maximum render height
-    {
-      (50 + 13 * nrow(if (input$Subset)
-      {
-        subsetData(ClusterGroups[which(ClusterGroups$V1 == input$variable), ], input$ranges)
-      }
+      altNames <- as.character(Descriptions$V3[which(Descriptions$V1==input$variable)])
+      
+      if (grepl("\\^",altNames))
+        altNames <- gsub("\\^",", ",altNames)
       else
-      {
-        ClusterGroups[which(ClusterGroups$V1 == input$variable), ]
-      }))
+        altNames <- altNames
+      
+      tagList(
+      h1(input$variable, color = "blue"),
+      h4(Descriptions$V2[which(Descriptions$V1==input$variable)]),
+      HTML(paste0("<b>Alternative Names: </b>","<i>",altNames,"</i>"))
+      )
     }
-    else
-    {
-      # I had to take a guess at what the maximum allowed height was
-      32000 # Much past 32,000, the renderer would start throwing errors
-    }))
-  }
-  
-  output$proteinPlot <- renderImage({
+  )
+  output$proteinPlot <- renderPlotly({
     backbone <- input$variable
     
-    # If the user is not subsetting anything, we will use a pre-rendered plot.
-    # This was implemented to save time and make the process faster. -ZL
-    if (!input$Subset)
-    {
-      if (input$arrange == "Sequence Length")
-      {
-        filename <- normalizePath(file.path('./BarGraphs',
-                                            paste(backbone, '.png', sep =
-                                                    '')))
-        list(src = filename)
-      }
-      else
-      {
-        filename <- normalizePath(file.path('./BarGraphs',
-                                            paste(backbone, '_AA.png', sep =
-                                                    '')))
-        list(src = filename)
-      }
-      
-    }
-    
-    # The case where a new plot needs to be rendered to accomodate a
-    # user's choice of subset.
-    else if (input$Subset)
-    {
       # Get the cluster items relevant to the choice of backbone
       CG2 <- ClusterGroups[which(ClusterGroups$V1 == backbone), ]
       
@@ -84,7 +46,8 @@ shinyServer(function(input, output) {
       {
         # Note that, as we would expect, all of the ones in the same cluster
         # will have the same color
-        CG2$V6[which(CG2$V2 == i)] <- cols[index]
+        # CG2$V6[which(CG2$V2 == i)] <- cols[index] # old: give unique color to each
+        CG2$V6[which(CG2$V2 == i)] <- index # New: give a unique ID
         index = index + 1
       }
       
@@ -139,32 +102,47 @@ shinyServer(function(input, output) {
       CG3[which(CG3$V2 %in% cids), "V8"] <- TRUE
       
       # Take a subset (method from global.R)
-      CG3 <- subsetData(CG3, input$ranges)
+      if (input$Subset)
+      {
+        CG3 <- subsetData(CG3, input$ranges)
+      }
       
       # seqData is only used if user tries to download
       seqData <<-
         as.character(CG3$V3)
       
+      pp <- plot_ly(CG3,
+                    y = ~c(1:nrow(CG3)),
+                    x = ~CG3$V4,
+                    type = "bar",
+                    orientation = "h",
+                    color = ~CG3$V6,
+                    hoverinfo = "text",
+                    text = ifelse(CG3$V8,paste0(CG3$V3,""),paste0("<b>",CG3$V3,"\b>"))
+                    ) %>%
+        layout(xaxis = list(title="Sequence Length"),
+               yaxis = list(title="Protein"))
+      
       # Generate the plot.
-      ggplot(CG3, aes(x = c(1:nrow(CG3)), y = CG3$V4)) + # Notice X position is determined by V7
+      p<-ggplot(CG3, aes(x = c(1:nrow(CG3)), y = CG3$V4)) + # Notice X position is determined by V7
+        
         geom_bar(stat = "identity",
-                 fill = CG3$V6,
-                 alpha = CG3$V5) +
+                 fill = CG3$V6) +
         scale_y_continuous() +
         scale_x_discrete() + # Remove extra space
         
-        # Protein name labels
-        geom_label(
-          size = 1.00,
-          y = max(CG3$V4) / 2.0,
-          fontface = ifelse(CG3$V8, "bold", "plain"),
-          label = CG3$V3,
-          color = ifelse(CG3$V9, "red", "black"),
-          label.padding = unit(0.05, "lines"),
-          label.r = unit(0.05, "lines"),
-          label.size = .01,
-          alpha = .5
-        ) +
+        # # Protein name labels
+        # geom_label(
+        #   size = 1.00,
+        #   y = max(CG3$V4) / 2.0,
+        #   fontface = ifelse(CG3$V8, "bold", "plain"),
+        #   label = CG3$V3,
+        #   color = ifelse(CG3$V9, "red", "black"),
+        #   label.padding = unit(0.05, "lines"),
+        #   label.r = unit(0.05, "lines"),
+        #   label.size = .01,
+        #   alpha = .5
+        # ) +
         
         # Bar number labels (somewhat arbitary)
         geom_text(size = 1.5,
@@ -177,21 +155,11 @@ shinyServer(function(input, output) {
         theme(axis.text.y = element_text(size = 1),
               axis.title.y = element_text(size = 2))
       
-      # The weird height values are mostly calculated from trial and error
-      ggsave(
-        filename = paste("BarGraphs/", backbone, "_temp.png", sep = ''),
-        height = 25 + as.integer(25 * (11 * nrow(CG3)) / 150.0),
-        width = 3.0 * 25,
-        units = "mm",
-        limitsize = FALSE
-      )
+      p<-ggplotly(p, height = 1000)
       
-      # Return the graph
-      list(src = paste("BarGraphs/", backbone, "_temp.png", sep = ''))
+      pp
+      
     }
-  },
-  deleteFile = FALSE # May lead to problems? -ZL
-  #height=getHeight() # This was used when we used renderPlot()
   )
   
   output$ptrees <- renderPlot({
@@ -203,11 +171,11 @@ shinyServer(function(input, output) {
        need(file.exists(fpath), paste(input$variable, "has 2 or fewer clusters, tree is meaningless"))
      )
     tree <- read.tree(fpath)
-    ggtree(tree, branch.length = "none") + geom_tiplab(color="purple",hjust = 1.0,vjust=-0.75)+
+    ggtree(tree) + geom_tiplab(color="purple",hjust = 1.0,vjust=-0.75)+
     geom_nodepoint(color="#b5e521", alpha=3/8, size=8)+
     geom_tippoint(color="purple", shape=20, size=4)
-
-  }, height = getHeight())
+    
+  })
   
   # This is supposed to be the download feature.
   # Offline, it gives the correct file output, but also throws an error.
