@@ -164,6 +164,7 @@ def StripCDSAddInc(ingb,incsv):
     
     k=0 #count the number of records
     m=0 # count the number of features
+    storedSeqs = []
     for record in inseqs:
         #k+=1
         if record.name in seqdict:
@@ -175,6 +176,7 @@ def StripCDSAddInc(ingb,incsv):
                 group = ""
             k+=1
             j = 0 # count the number of orfs on each plasmid
+            
             for feature in record.features:
                 try:
                     if feature.type == "CDS":
@@ -197,11 +199,17 @@ def StripCDSAddInc(ingb,incsv):
                             # only right features that are nonempty (not sure why some are)
                             if len(sq)>0:
                                 sq.seq = sq.seq.translate(table="Bacterial", to_stop=True)
-                                SeqIO.write(sq,outhandle,"fasta")
+                                storedSeqs.append(sq)
+                                #SeqIO.write(sq,outhandle,"fasta")
                         except ValueError:
                             print "Referenced another sequence..."
                 except KeyError:
                         print record.id + ' has no gene features, skipping sequence'
+    storedSeqs.sort(key=lambda x: len(x.seq))
+    for storedSeq in reversed(storedSeqs):
+        print(len(storedSeq.seq))
+        SeqIO.write(storedSeq,outhandle,"fasta")
+                    
         #else:
         #    #print record.name+" not found in csv"
     outhandle.close()
@@ -390,12 +398,12 @@ if __name__=="__main__":
     # prior to running matrices through heat map, removed all proteins found in 2 or fewer sequences.
 
     proj = "Plasmids20-200kb-6-9-2016"
-    extract_plnames_from_file(proj+".gb")
+   # extract_plnames_from_file(proj+".gb")
 #==============================================================================
 # Had to modify code to work on a MAC
 #  there should be ~4349 plasmids and ~328435 sequences, but without the update there were only ~2300 plasmids
 #==============================================================================
-    StripCDSAddInc(proj+".gb",proj+".csv")
+   # StripCDSAddInc(proj+".gb",proj+".csv")
     os.system('usearch.exe -cluster_fast '+proj+'AA.fa -id 0.7 -target_cov 0.7 -centroids clust_'+proj+'.fasta -uc '+proj+'_Clusters.tab -userfields query+target+id+ql+tl+alnlen+qcov+tcov')
     #os.system('./usearch -cluster_fast clust_'+proj+'.fasta -id 0.5 -target_cov 0.5 -centroids '+proj+'_2nd.fasta -uc '+proj+'Clusters_2nd.tab -userfields query+target+id+ql+tl+alnlen+qcov+tcov')
 

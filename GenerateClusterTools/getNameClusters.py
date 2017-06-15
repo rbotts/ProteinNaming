@@ -10,13 +10,21 @@ differently but might be the same, using usearch clustering.
 Information about the format of the .tab file can be found at:
 http://www.drive5.com/usearch/manual/opt_uc.html
 """
+
+def check_any_in_string(listChecks, str):
+    for item in listChecks:
+        if item in str:
+            return True
+    return False
+    
 #==============================================================================
 # Case sensitive - 7/27/2016 Update
 # Should be identical to gather_clusters_R_ZL except .lower() is removed
 #==============================================================================
 def gather_clusters_case_ZL(proteinFile = "Backbones_4.csv", 
                       clusterFile = "Plasmids20-200kb-6-9-2016_Clusters.tab",
-                      outfile = "ClusterGroups.csv"):
+                      outfile = "ClusterGroups.csv",
+                      distinguishCase = False):
     import csv
 
     cRows = [] # Rows which contain a cluster summary
@@ -35,6 +43,7 @@ def gather_clusters_case_ZL(proteinFile = "Backbones_4.csv",
     ClusterIDs = []
     ProtInfo = {}
     index = -1
+    bad = ["trans","recomb","integ","resist","tnp","tetracy","lactam","ins"]
     
     with open(proteinFile,"r") as backbones:
         backboneFile = csv.reader(backbones)
@@ -47,6 +56,9 @@ def gather_clusters_case_ZL(proteinFile = "Backbones_4.csv",
                 for srow in sRows:
                     currProt = srow[8]
                     cid = srow[1]
+                    crPr = currProt.lower()
+                    if check_any_in_string(bad,crPr):
+                        continue
                     if protein in currProt:
                         ClusterIDs[index].add(cid)
                         ProtInfo[currProt] = [srow[2],srow[3]]                            
@@ -57,7 +69,6 @@ def gather_clusters_case_ZL(proteinFile = "Backbones_4.csv",
                         except KeyError:
                             Names[index][cid] = set()
                             Names[index][cid].add(currProt) 
-                        sRows.remove(srow)
                         
     with open(outfile, "w") as out:
         Writer = csv.writer(out)
@@ -66,13 +77,19 @@ def gather_clusters_case_ZL(proteinFile = "Backbones_4.csv",
                 rows = []
                 for k in Names[i][j]:
                     row = []
-                    row.append(titles[i])
-                    row.append(j)
-                    row.append(k)
-                    row.append(ProtInfo[k][0])
-                    row.append(ProtInfo[k][1])
+                    row.append(titles[i])   # Append 4-letter name
+                    row.append(j)   # Append Cluster ID
+                    crPrInfo = k.split("_")
+                    protName = crPrInfo[0]
+                    incGroup = crPrInfo[1]
+                    plasName = crPrInfo[2]
+                    row.append(protName)
+                    row.append(incGroup)
+                    row.append(plasName)
+                    row.append(ProtInfo[k][0])  # Append Seq Length
+                    row.append(ProtInfo[k][1])  # Append Identity
                     rows.append(row)
-                rows.sort(key=lambda x: int(x[3]))
+                rows.sort(key=lambda x: int(x[5]))
                 for row in reversed(rows):
                     Writer.writerow(row)
 
@@ -428,6 +445,6 @@ def gather_clusters_ZL_old(proteinFile = "Backbones_2.csv",
                 
     return nameGroups
 
-gather_clusters_case_ZL(proteinFile = "Backbones_4.csv",
-                      clusterFile = "Plasmids20-200kb-6-9-20162_Clusters.tab",
-                      outfile = "ClusterGroups2.csv")
+gather_clusters_case_ZL(proteinFile = "Backbones_6-13-2017.csv",
+                      clusterFile = "Plasmids20-200kb-6-9-2016_Clusters.tab",
+                      outfile = "ClusterGroups_6-13-2017.csv")
