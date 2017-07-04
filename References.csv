@@ -1,0 +1,40 @@
+Inc group; plasmid name			IncA/C; pNDM-1_Dok01	IncF; F	IncP?; RP4	IncP?; R751	IncU; pRA3	IncW; R7K	IncpSK1; pSK41a
+Accession no.;locus tag			AP012208;Ndm1Dok1_n0001–0224	NC_002483;D616_p97001–107 or Fpla001–108	BN_000925;NAb	NC_001735;R751p01-69	DQ401103; pRA3.01–3.50	AM901564;R7K_001–043	NC_005024;pSK41_p01-p46
+/function =	/gene =; /product =	/note (comment)=	/gene = or /product =						
+Replication	rep; Rep	Replication initiator protein; or helicase; or primase; or regulator	RepA	RepB/FIB; RepE	trfA; TrfA1; TrfA2	TrfA1; TrfA2	RepB	RepA	Rep; Rep(AC)
+oriV	Origin of vegetative replication		ori-1/oriV; ori-2/oriS	oriV					
+ssb; Ssb	Single-stranded DNA binding protein	Ssb	Ssb	Ssb	Ssb		Ssb	TraM	
+Partitioning	parA; ParA	Partitioning protein	ParA	SopA	IncC; IncC1; IncC2	IncC1; -C2	IncC		ParM
+parB; cbp; ParB	Centromere binding protein	ParB	SopB	KorB	KorB	KorB		ParR	
+parC; parS; cen	Centromere		sopC						
+Conjugative DNA transfer (Dtr)	rlx; Rlx	Relaxase	TraI	TraI	TraI	TraI	Nic	TrwC	Nes
+nic	Nick site; origin of conjugative replication		oriT	oriT	nic			oriT	
+dtr; Dtr	Relaxosome auxiliary proteins		TraY; -M	TraH; -J; -K	TraH; -J; -K		TrwA		
+pri; Pri	DNA primase			TraC	TraC	TraC3; -C4			
+cpl; Cpl	Coupling protein	TraD	TraD	TraG	TraG	VirD4	TrwB	TraK	
+Exclusion	sfx; Sfx	Surface exclusion protein		TraT					
+eex; Eex	Entry exclusion protein		TraS	TrbK	TrbK	Eex			
+Type IV secretion system (TivB)	slt (virB1)c	Soluble transglycosylase	pNDM-1_Dok01_N0219	GeneX	TrbN	TrbN			
+tivB2 (virB2)	P-type propilin	TraA		TrbC	TrbC	VirB2			
+tivB3 (virB3)	Pilus assembly	TraL	TraL	TrbD	TrbD	VirB3			
+tivB4 (virB4)	T4SS ATPase	TraC	TraC	TrbE	TrbE	VirB4	TrwK	TraE	
+tivB5 (virB5)	Pilus assembly	TraE	TraE	TrbF	TrbF	VirB5	TrwJ		
+tivB6 (virB6)	T4SS protein			TrbL	TrbL	VirB6	TrwI		
+tivB7 (virB7)	T4SS protein	TraV	TraV	TrbH	TrbH	pRA3.23	TrwH		
+tivB8 (virB8)	T4SS protein			TrbJ	TrbJ	VirB8	TrwG		
+tivB9 (virB9)	T4SS protein	TraK	TraK	TrbG	TrbG	VirB9	TrwF		
+tivB10 (virB10)	T4SS protein	TraB	TraB	TrbI	TrbI	VirB10	TrwE		
+tivB11 (virB11)	T4SS protein			TrbB	TrbB	VirB11	TrwD		
+Pep; Pep	P-type propilin processing; cyclization	TrhF		TraF	TraF				
+Mating pair formation proteins (Mpf)	mpfPL-O	P-type mating pair formation proteins			TrbL;-M;-N	TrbL; ? M; -N		TrwL;-N	
+F type IV secretion proteins (TivF)	tivF1 (traA)	F-type propilin		TraA					
+nac; Nac	F-type pilin acetylase		TraX	TrbP	TrbP				
+tivF2 (traF)	F-type T4SS protein	TraF	TraF						
+tivF3 (traG)	F-type T4SS protein; Mating pair stabilization	TraG	TraG						
+tivF4 (traH)	F-type T4SS protein	TraH	TraH						
+tivF5 (trbI)	F-type T4SS protein		TrbI						
+tivF6 (traN)	F-type T4SS protein; Mating pair stabilization	TraN	TraN						
+tivF7 (traU)	F-type T4SS protein	TraU	TraU						
+tivF8 (traW)	F-type T4SS protein	TraW	TraW						
+tivF9 (trbC)	F-type T4SS protein		TrbC						
+dsbC (trbB)	DsbC homolog		TrbB						

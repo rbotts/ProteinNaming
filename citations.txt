@@ -1,0 +1,13 @@
+<p>
+<a href = "http://jb.asm.org/content/192/22/6045.full">
+Suzuki H., Yano H., Brown C. J., Top E. M., 2010.<br>
+Predicting plasmid promiscuity based on genomic signature.<i> J. Bacteriol.</i> 192: 6045–6055.
+</a>
+</p>
+
+<p>
+<a href = "https://doi.org/10.1016/j.plasmid.2017.03.006">
+Thomas, Christopher M., Nicholas R. Thomson, Ana M. Cerdeno-Tarraga, Celeste J. Brown, Eva M. Top, and Laura S. Frost.
+<br>"Annotation of Plasmid Genes." Plasmid 91 (2017): 61-67. Web. 28 June 2017.
+</a>
+</p>

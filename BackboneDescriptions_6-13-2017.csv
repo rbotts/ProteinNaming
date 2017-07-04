@@ -1,0 +1,37 @@
+Sfx,Surface exclusion protein,TraT
+Eex,Entry exclusion protein,TraS^TrbK^Eex
+Rep,Replication initiator; possible helicase/Primase/regulator,Rep^RepA^RepB^FIB^RepE^trfA^TrfA1^TrfA2^Rep(AC)
+Ori,Origin of vegetaTive Replication,Ori-1^Ori-2^OriV^OriS
+Ssb,Single-stranded DNA binding protein,ssb^traM^TraM
+ParA,Partitioning protein,ParA^SopA^incC^IncC1^IncC2^ParR
+ParB,Centromere binding protein,cbp^ParB^SopB^KorB^ParM
+ParC,Centromere,ParS^cen^sopC
+Rlx,Relaxase,Rlx^TraI^Nic^TrwC^Nes
+Nic,Nick site; Origin of conjugaTive Replication,OriT^Nic (OriT)^Nic(OriT)
+Dtr,Relaxosome auxiliary proteins,Dtr^TraY^TraM^TraH^TraJ^TrwA
+Pri,DNA Primase,Pri^TraC^TraC3^TraC4
+Cpl,Coupling protein,Cpl^TraD^TraG^VirD4^TrwB
+TivFA,F-type propilin,TraA
+Nac,F-type pilin acetylase,TraX^TrbP
+TivFF,F-type Type IV Secretion System,TraF
+TivFG,F-type Type IV Secretion System,TraG
+TivFH,F-type Type IV Secretion System,TraH
+TivFI,F-type Type IV Secretion System,TrbI
+TivFN,F-type Type IV Secretion System,TraN
+TivFU,F-type Type IV Secretion System,TraU
+TivFW,F-type Type IV Secretion System,TraW
+TivFC,F-type Type IV Secretion System,TrbC
+DsbC,DsbC homolog,TrbB
+MpfPL-O,P-type mating pair formation proteins,TrbL^TrbM^TrbN^TrwL^TrwN
+Slt,Soluble transglycosylase,pNDM-1_Dok01_N0219^virB1^TrbN^geneX
+TivB2,P-type propilin,virB2^TraA^TivB2^TrbC
+TivB3,Pilus assembly,TraL^TrbD^VirB3
+TivB4,Type IV Secretion System ATPase,virB4^TraC^TrbE^TrwK^TraE
+TivB5,Pilus assembly,virB5^TraE^TrbF^TrwJ
+TivB6,Type IV Secretion System,virB6^TrbL^TrwI
+TivB7,Type IV Secretion System,virB7^TraV^TrbH^pRA3.23^TrwH
+TivB8,Type IV Secretion System,virB8^TrbJ^TrwG
+TivB9,Type IV Secretion System,virB9^TraK^TrbG^TrwF
+TivB10,Type IV Secretion System,virB10^TrbI^TrwE
+TivB11,Type IV Secretion System,virB11^TrbB^TrwD
+Pep,P-type propilin processing and cyclization,TrhF^TraF
