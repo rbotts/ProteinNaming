@@ -186,7 +186,9 @@ def StripCDSAddInc(ingb,incsv):
     
     for storedSeq in reversed(storedSeqs + storedSeqs_ws):
         #print(len(storedSeq.seq))
-        SeqIO.write(storedSeq,outhandle,"fasta")
+        #ignore sequences less than 50 by request of Celeste -ZL
+        if len(storedSeq.seq) > 50:
+            SeqIO.write(storedSeq,outhandle,"fasta")
                     
         #else:
         #    #print record.name+" not found in csv"
@@ -243,7 +245,7 @@ def which_eq_str(listChecks, str):
 def gather_clusters_case_ZL(proteinFile = "Backbones_4.csv", 
                       clusterFile = "Plasmids20-200kb-6-9-2016_Clusters.tab",
                       outfile = "ClusterGroups.csv",
-                      distinguishCase = False):
+                      heatmap = False):
     import csv
 
     cRows = [] # Rows which contain a cluster summary
@@ -286,7 +288,8 @@ def gather_clusters_case_ZL(proteinFile = "Backbones_4.csv",
                         except KeyError:
                             Names[index][cid] = set()
                             Names[index][cid].add(currProt)   
-                    
+    
+    CG = []
     with open(outfile, "w") as out:
         Writer = csv.writer(out)
         for i in range(len(Names)):
@@ -312,9 +315,51 @@ def gather_clusters_case_ZL(proteinFile = "Backbones_4.csv",
                 rows.sort(key=lambda x: int(x[6]))
                 for row in reversed(rows):
                     Writer.writerow(row)
-                    
+                    CG.append(row)
+    return CG
+
+#========================================================================
+# Method for generating heat map in R (1/11/2018) - ZL
+# CG is essentially a list of rows. each row has a certain format.           
+
+#========================================================================
+def Pre_heat_map_table(CG, outfile):
+     
+    Labels = set([row[0] for row in CG])
+    plasNames = set([row[4] for row in CG])
+    
+    # w, h = len(set(plasNames)), len(set(Labels));
+    # Matrix = {[0 for x in range(w)] for y in range(h)}
+    Matrix = {x:{y:0 for y in Labels} for x in plasNames}
+    
+    for plasName in plasNames:
+        LabelsByPlasmid = []
+        for row in CG:
+            if row[4] == plasName:
+                LabelsByPlasmid.append(row[0])
+        for Label in set(LabelsByPlasmid):
+            Matrix[plasName][Label] = 1
+      
+    with open(outfile, "w") as out:
+        Writer = csv.writer(out)
+        Writer.writerow([key for key in Matrix['1'].keys()])
+        for plasName in plasNames:
+            Writer.writerow([plasName]+[Matrix[plasName][key] for key in Matrix[plasName].keys()])
+            
+#    LabelsByPlasmid = {plasmid:[] for plasmid in plasNames}
+#    for plasName in plasNames:
+#        for row in CG:
+#            if row[4] == plasName:
+#                LabelsByPlasmid[plasName].append(row[0])
+#                
+#    with open(outfile, "w") as out:
+#        for key in LabelsByPlasmid.keys():
+#            Writer = csv.writer(out)
+#            Writer.writerow( [key]+ list(set( LabelsByPlasmid[key] )) )
+            
 ##########################################################
 
+#c("4LetterName","cid","protName","IncGroup","Plasmid","uid","SeqLength","Identity","Ex")
 
 ###########################################################
 
@@ -327,7 +372,9 @@ if __name__=="__main__":
 #  there should be ~4349 plasmids and ~328435 sequences, but without the update there were only ~2300 plasmids
 #==============================================================================
     #StripCDSAddInc(proj+".gb",proj+".csv")
-   # os.system('usearch.exe -cluster_fast '+proj+'AA.fa -id 0.7 -target_cov 0.7 -centroids clust_'+proj+'.fasta -uc '+proj+'_Clusters.tab -userfields query+target+id+ql+tl+alnlen+qcov+tcov')
-    gather_clusters_case_ZL(proteinFile = "Backbones_6-13-2017.csv",
+    
+    #os.system('usearch.exe -cluster_fast '+proj+'AA.fa -id 0.7 -target_cov 0.7 -centroids clust_'+proj+'.fasta -uc '+proj+'_Clusters.tab -userfields query+target+id+ql+tl+alnlen+qcov+tcov')
+    CG = gather_clusters_case_ZL(proteinFile = "Backbones_6-13-2017.csv",
                       clusterFile = "Plasmids20-200kb-6-9-2016_Clusters.tab",
-                      outfile = "ClusterGroups_7-3-2017_1.csv")
+                      outfile = "ClusterGroups_1-10-2018_1.csv")
+    Pre_heat_map_table(CG, "matrixData_1-11-2018_1.csv")

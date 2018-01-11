@@ -8,9 +8,10 @@ Exemplars <<-
 References <<-
   read.csv(file = "90PlasmidsAndIncGroups.csv", head = F, sep = ",")
 CG <<-
-  read.csv(file = "ClusterGroups_7-3-2017_1.csv", head = F, sep = ",", stringsAsFactors = F)
+  read.csv(file = "ClusterGroups_9-17-2017_1.csv", head = F, sep = ",", stringsAsFactors = F)
 CG <<- na.omit(CG)
 
+# Sort out which ones are grouped with well-studied plasmids and label
 findRefs <- function(psmid)
 {
   paste0(CG[which(CG$V2 %in% CG[which(CG$V9 == psmid),"V2"]),"V9"],"~") ->> CG[which(CG$V2 %in% CG[which(CG$V9 == psmid),"V2"]),"V9"]
@@ -20,9 +21,9 @@ findRefs <- function(psmid)
 lapply(Exemplars,findRefs)
 
 Descriptions <<-
-  read.csv(file = "BackboneDescriptions_6-13-2017.csv", head = FALSE, sep =",")
+  read.csv(file = "BackboneDescriptions_11-9-2017.csv", head = FALSE, sep =",")
 
-Genome <<- read.table(file = "genomeMatrix.csv",sep=",")
+Genome <<- as.matrix( read.table(file = "matrixData.csv",sep=",",header = TRUE))
 
 shinyUI(fluidPage(
   tags$head(
@@ -43,7 +44,7 @@ shinyUI(fluidPage(
 )
     ),
 
-h4("Plasmid Backbone Groups Visualization Tool v1.0 - Select a backbone protein"),
+h4("Plasmid Backbone Groups Visualization Tool (last updated 1/11/18)"),
 selectInput("variable", label = NULL,
             choices = names(setNames(
               unique(Descriptions$V1),
@@ -120,12 +121,7 @@ tabsetPanel(
           column(4,
         h3("Summary"),
         HTML(
-          "<p>This plot shows multiple distinct protein families.
-          Selecting a <b>proposed four-letter backbone label</b> from the dropdown list will
-          bring up all of the associated protein families.
-          One of the traditional labels
-          will show up at least once in each family -
-          for example, the green group under the proposed TivFG protein often contains the label TraG.</p>"
+          "<p>This plot shows multiple distinct protein families in which at least one member had the selected product name. </p>"
         ),
         h3("Colors"),
         
@@ -137,11 +133,11 @@ tabsetPanel(
         ),
         
         h3("Hover Info"),
-        p("Hovering the mouse over a protein will cause the following information to be displayed:"),
-        tags$ul(tags$li(HTML("<b>NCBI Label:</b> The label assigned to this protein in GenBank.")),
+        p("Hovering the mouse over a protein will display the following information:"),
+        tags$ul(tags$li(HTML("<b>Product:</b> The product name assigned to this protein in the GenBank record.")),
                 tags$li(HTML("<b>IncGroup:</b> The incompatibility group, as found in the table of 90 reference plasmids. 
                          Often unavailable and displayed as a question mark.")),
-                tags$li(HTML("<b>Plasmid:</b> The plasmid on which this protein was located.")),
+                tags$li(HTML("<b>Plasmid:</b> The plasmid on which this protein is encoded.")),
                 tags$li(HTML("<b>% Identity w/ Centroid:</b> The Amino Acid sequence identity of this protein with the centroid of this cluster."))
                 ),
         h3("Filters"),
@@ -157,6 +153,8 @@ tabsetPanel(
         ),
       tabPanel(
         HTML("<i>1c. Large plot with labels</i>"),
+        h3("Description"),
+        p("The following plot shows the same information as the plot in 1a, but larger so that all of the product names can be seen at a glance."),
         conditionalPanel(
           condition = "$('html').hasClass('shiny-busy')",
           tags$div("Loading...", id = "loadmessage"),
@@ -172,33 +170,35 @@ tabsetPanel(
           ),
         #uiOutput("description"),
         plotOutput("bigPlot")
-            ),
-      tabPanel(
-        HTML("<i>1d. Reference Table</i>"),
-        HTML("<b>Table from:</b> <a href=https://doi.org/10.1016/j.plasmid.2017.03.006>Annotation of plasmid genes</a>"),
-        h5(
-          "Plasmid core functions: generic names plus names of paralogs in examples of different well-studied plasmids."
-        ),
-        HTML(readChar("table.txt", file.info("table.txt")$size))
-        #tableOutput("refTable")
-      )
+            )
+      # tabPanel(
+      #   HTML("<i>1d. Reference Table</i>"),
+      #   HTML("<b>Table from:</b> <a href=https://doi.org/10.1016/j.plasmid.2017.03.006>Annotation of plasmid genes</a>"),
+      #   h5(
+      #     "Plasmid core functions: generic names plus names of paralogs in examples of different well-studied plasmids."
+      #   ),
+      #   HTML(readChar("table.txt", file.info("table.txt")$size))
+      #   #tableOutput("refTable")
+      # )
         
     )
       ),
-  tabPanel(HTML("<b>2. Heat Map</b>"), 
+  
+  
+  tabPanel(HTML("<b>2. Heat Map</b>"),
            tabsetPanel(
              tabPanel(HTML("<i>2a. Heat map</i>"),
                       sidebarLayout(
                           sidebarPanel(
                             selectInput("viewProteins",label="View proteins grouped with:",
-                                        choices = c(Exemplars,"All"))
+                                        choices = c(Exemplars,"All"),selected = "All")
                           ),
                           mainPanel(
                             plotlyOutput("heatMap")
                           )
                         )
                       ),
-             tabPanel(HTML("<i>2b. Description</i>"), 
+             tabPanel(HTML("<i>2b. Description</i>"),
                       h3("Summary"),
                       p("This heat map displays the potential presence of different backbone genes
                         within each well-studied plasmid. If at least one four-letter label is associated
@@ -219,7 +219,7 @@ tabsetPanel(
     downloadButton("Align", "Download alignment"),
     br(),
     h3("Summary"),
-    p("Each alignment file contains a muscle alignment of the representative sequences from each protein family.")
+    HTML("<p>Each alignment file contains a <a href = 'https://doi.org/10.1093/nar/gkh340'>MUSCLE</a> alignment of the representative sequences from each protein family.<p>")
   ),
   tabPanel(
     HTML("<b>4. Phylogenetic trees</b>"),
@@ -239,6 +239,7 @@ tabsetPanel(
         )
       )
       ),
+    uiOutput("clustNum"),
     plotOutput("ptrees")
       ),
     tabPanel ( HTML ("<i> 4b. Description </i>"),

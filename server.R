@@ -181,7 +181,7 @@ shinyServer(function(input, output) {
       color =  ~ProtData$V6 ,
       hoverinfo = "text",
       text = paste0(
-        "NCBI Label: ",
+        "Product: ",
         ProtData$protName,
         "<br>",
         "IncGroup: ",
@@ -222,12 +222,13 @@ shinyServer(function(input, output) {
       {
         ProtData <- ProtData[which(ProtData$Ex != "NONE"), "Plasmid"]
       }
-      
-      G <- as.matrix(Genome)
+      #rownames(Genome)[rownames(Genome) %in% unique(ProtData)]
+      #Genome [rownames(Genome) %in% unique(ProtData),]
+      #Genome[(as.character(rownames(Genome)) %in% ProtData),]
       
       p <- plot_ly( 
-                    type="heatmap", z = G [which(unique(ProtData) %in% rownames(Genome)),] ,
-                    y = unique(ProtData),   x = Descriptions$V1   )
+                    type="heatmap", z = Genome[(as.character(rownames(Genome)) %in% ProtData),],
+                    y = ProtData,   x = colnames(Genome)   )
       
       hide_colorbar(p)
     }
@@ -299,7 +300,7 @@ shinyServer(function(input, output) {
    
     return(
       exprToFunction(
-        16*length(which(CG[which(CG$V1 == input$variable),"V8"] == '*'))
+        16*read.tree(file.path("SeqTreesTest", paste0(input$variable,"_",input$clusterNum, ".nwk")))$Nnode
         )
       )
     }
@@ -309,7 +310,8 @@ shinyServer(function(input, output) {
     # this code may fail if the family only has one cluster
     
     fpath <-
-      file.path("SeqTreesTest", paste0(input$variable, ".nwk"))
+    file.path("SeqTreesTest", paste0(input$variable,"_",input$clusterNum, ".nwk"))
+      #file.path("SeqTreesTest", "Dtr_16210.nwk")
     validate(need(
       file.exists(fpath),
       paste(
@@ -343,11 +345,21 @@ shinyServer(function(input, output) {
   }, contentType = "text/faa")
 
 
-  output$Seqs <- downloadHandler(filename = paste0(input$variable, ".faa"),
+  output$Seqs <- downloadHandler(filename = paste0(input$variable,".faa"),
                                 
                                 content = function(file) {
                                   seqAlign <-
                                     read.fasta(paste0("Seqs_ex/", input$variable, ".faa"), "AA")
                                   write.fasta(seqAlign, names = attr(seqAlign, "name"), file)
                                 }, contentType = "text/faa")
+  
+  output$clustNum <- renderUI(
+    {
+      filenames <- list.files("./SeqTreesTest/")
+      filenames <- filenames[which(grepl(input$variable,filenames))]
+      filenames <- gsub(".nwk","",filenames)
+      numOptions <- gsub("^.*_","",filenames)
+      selectInput("clusterNum", "Cluster ID:",choices=numOptions)
+    }
+  )
 })
