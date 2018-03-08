@@ -8,22 +8,22 @@ Exemplars <<-
 References <<-
   read.csv(file = "90PlasmidsAndIncGroups.csv", head = F, sep = ",")
 CG <<-
-  read.csv(file = "ClusterGroups_9-17-2017_1.csv", head = F, sep = ",", stringsAsFactors = F)
+  read.csv(file = "ClusterGroups_2-5-2018_1.csv", head = F, sep = ",", stringsAsFactors = F)
 CG <<- na.omit(CG)
 
-# Sort out which ones are grouped with well-studied plasmids and label
-findRefs <- function(psmid)
-{
-  paste0(CG[which(CG$V2 %in% CG[which(CG$V9 == psmid),"V2"]),"V9"],"~") ->> CG[which(CG$V2 %in% CG[which(CG$V9 == psmid),"V2"]),"V9"]
-  gsub(paste0(psmid,"~"),psmid,CG$V9) ->> CG$V9
-  gsub("NONE~",paste0(psmid,"~"),CG$V9) ->> CG$V9
-}
-lapply(Exemplars,findRefs)
+# # Sort out which ones are grouped with well-studied plasmids and label
+# findRefs <- function(psmid)
+# {
+#   paste0(CG[which(CG$V2 %in% CG[which(CG$V9 == psmid),"V2"]),"V9"],"~") ->> CG[which(CG$V2 %in% CG[which(CG$V9 == psmid),"V2"]),"V9"]
+#   gsub(paste0(psmid,"~"),psmid,CG$V9) ->> CG$V9
+#   gsub("NONE~",paste0(psmid,"~"),CG$V9) ->> CG$V9
+# }
+# lapply(Exemplars,findRefs)
 
 Descriptions <<-
   read.csv(file = "BackboneDescriptions_11-9-2017.csv", head = FALSE, sep =",")
 
-Genome <<- as.matrix( read.table(file = "matrixData.csv",sep=",",header = TRUE))
+Genome <<- as.matrix( read.table(file = "matrixData_2-5-2018_1.csv",sep=",",header = TRUE))
 
 shinyUI(fluidPage(
   tags$head(
@@ -44,7 +44,7 @@ shinyUI(fluidPage(
 )
     ),
 
-h4("Plasmid Backbone Groups Visualization Tool (last updated 1/11/18)"),
+h4("Plasmid Backbone Groups Visualization Tool (last updated 3/7/18)"),
 selectInput("variable", label = NULL,
             choices = names(setNames(
               unique(Descriptions$V1),
@@ -73,7 +73,6 @@ tabsetPanel(
         sidebarLayout(
           sidebarPanel(
             
-            downloadButton("Seqs", HTML("<b>Download sequences</b>")), HTML("<br><br>"),
             radioButtons(
               "refOnly",
               "Filters",
@@ -85,6 +84,8 @@ tabsetPanel(
               ),
               selected = "proteins grouped with well-studied plasmids"
             ),
+            
+            downloadButton("Seqs", HTML("<b>Download selected sequences</b>")), HTML("<br><br>"),
             
              selectInput(
               "arrange",

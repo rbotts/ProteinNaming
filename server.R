@@ -190,6 +190,9 @@ shinyServer(function(input, output) {
         "Plasmid: ",
         ProtData$Plasmid,
         "<br>",
+        "Cluster ID: ",
+        ProtData$cid,
+        "<br>",
         "% Identity w/ Centroid: ",
         ProtData$Identity
       )
@@ -348,8 +351,26 @@ shinyServer(function(input, output) {
   output$Seqs <- downloadHandler(filename = paste0(input$variable,".faa"),
                                 
                                 content = function(file) {
+                                  if (input$refOnly == "All")
+                                  {
                                   seqAlign <-
-                                    read.fasta(paste0("Seqs_ex/", input$variable, ".faa"), "AA")
+                                    read.fasta(paste0("Seqs_all/", input$variable, ".faa"), "AA")
+                                  }
+                                  else if (input$refOnly == "proteins grouped with well-studied plasmids")
+                                  {
+                                    seqAlign <-
+                                      read.fasta(paste0("Seqs_groupedwith_ex/", input$variable, ".faa"), "AA")
+                                  }
+                                  else if (input$refOnly == "proteins directly from well-studied plasmids")
+                                  {
+                                    seqAlign <-
+                                      read.fasta(paste0("Seqs_only_ex/", input$variable, ".faa"), "AA")
+                                  }
+                                  else if (input$refOnly == "all EXCEPT proteins grouped with well-studied plasmids")
+                                  {
+                                    seqAlign <-
+                                      read.fasta(paste0("Seqs_allbut_ex/", input$variable, ".faa"), "AA")
+                                  }
                                   write.fasta(seqAlign, names = attr(seqAlign, "name"), file)
                                 }, contentType = "text/faa")
   

@@ -1,17 +1,17 @@
 from Bio.Seq import Seq, MutableSeq
 from Bio.SeqRecord import SeqRecord
 from Bio.SeqFeature import SeqFeature,FeatureLocation
-from Bio.Blast import NCBIWWW, NCBIXML
-from Bio.SeqUtils import GC
+#from Bio.Blast import NCBIWWW, NCBIXML
+#from Bio.SeqUtils import GC
 from Bio import SeqIO, Entrez, Alphabet
-from Bio.Graphics import GenomeDiagram
-from Bio.Graphics.GenomeDiagram import CrossLink
-from reportlab.lib.colors import *
-from reportlab.lib import colors
-import urllib2
+#from Bio.Graphics import GenomeDiagram
+#from Bio.Graphics.GenomeDiagram import CrossLink
+#from reportlab.lib.colors import *
+#from reportlab.lib import colors
+#import urllib2
 import os
+#import numpy as np
 import csv
-import numpy as np
 
 #from user_plasmids import *
 #from expanding import *
@@ -39,38 +39,19 @@ def extract_plnames_from_file(infile = "Plasmids.gb"):
 	
     # This will be used when adding inc groups -ZL
     incGroupDict = make_incGroup_dict()
-
+    
+    AccNum=""
+    Genus=""
+    Species=""
+    name=""
     with open(infile,"rU") as inhandle:
-        for sq in SeqIO.parse(inhandle,"genbank"):
-            #print sq.description
-            total+=1
-            Genus=sq.description.split(" ")[0]
-            Species=sq.description.split(" ")[1]
-            AccNum=sq.name
-            if sq.description.find('plasmid')>0:
-                # logic takes the name after the word plasmid if it exists, otherwise takes the name before it.
-                #prior = sq.description.split("plasmid")[0].split(" ")
-                
-                #name = sq.description.split("plasmid")[1].split(" ")[1].strip(",").strip(".")
-                try:
-                    if len(sq.description.split('plasmid ')[1].split(' ')) > 0:
-                        #print "^^"+str(sq.description.split("plasmid "))
-                        name = sq.description.split('plasmid ')[1].split(' ')[0].strip(",") # take the word after plasmid as the name
-                    elif len(sq.description.split('plasmid ')[1].split(' ')) == 0:
-                        name = sq.description.split('plasmid')[0].split(' ')[0] # take the word after plasmid as the name
-                except IndexError:
-                    if sq.description.find('plasmid.'):
-                        name = "unnamed"
-                    else:
-                        if len(sq.description.split('plasmid,')[0].split(' ')) > 0:
-                            stuff = sq.description.split('plasmid,')[1].split(' ')
-                            name = stuff[-1].strip(",") # take the word after plasmid as the name
-                #print "%%%%%"+name
-                
-                count+=1
-                ##print count
-            else:
-                continue
+        for record in SeqIO.parse(inhandle,"genbank"):
+            AccNum = record.name
+            Genus = record.description.split(" ")[0]
+            Species = record.description.split(" ")[1]
+            for feature in record.features:
+                if feature.type == 'source':
+                    name = feature.qualifiers['plasmid'][0]
 				
 	# Get the inc-group for this plasmid using the list made above -ZL
             group = get_incGroup_from_plasmid(name,incGroupDict)
@@ -165,7 +146,8 @@ def StripCDSAddInc(ingb,incsv):
                             sq=feature.extract(record)
                             # Using description to store name because the naems are too long with the positions in them
                             #sq.id = feat_name+"_"+plname
-                            sq.id = feat_name+"_"+group+"_"+plname+"_"+str(m)
+                            plname = plname.replace(" ","")
+                            sq.id = feat_name+":::"+group+":::"+plname+":::"+str(m)
                             #sq.id = feat_name+"-"+str(j)+"_:_"+group+"_:_"+plname
                             # only right features that are nonempty (not sure why some are)
                             if len(sq)>0:
@@ -216,6 +198,26 @@ def GetSeqsAndGroupsFromCSV(infile):
 
         return out
 
+def StanDevi(lst, population=True):
+    from math import sqrt
+    """Calculates the standard deviation for a list of numbers."""
+    lst = list(lst)
+    num_items = len(lst)
+    mean = sum(lst) / num_items
+    differences = [x - mean for x in lst]
+    sq_differences = [d ** 2 for d in differences]
+    ssd = sum(sq_differences)
+ 
+    # Note: it would be better to return a value and then print it outside
+    # the function, but this is just a quick way to print out the values along
+    # the way.
+    if population is True:
+        variance = ssd / num_items
+    else:
+        variance = ssd / (num_items - 1)
+    sd = sqrt(variance)
+    return sd
+    
 # Returns true if any item in the list is found IN the string
 def any_in_str(listChecks, str):
     for item in listChecks:
@@ -238,14 +240,21 @@ def which_eq_str(listChecks, str):
     return "NONE"
 
 #==============================================================================
-# Get clusters into a suitable format for R
-# June 2017 edition
+# Opens a USEARCH cluster file and organizes the data.
+# Feb 2018 edition
 # Zac Lindsey
+
+# Opens and reads a USEARCH cluster file, extracting relevant sequences
+# (Relevant meaning, related to the backbones defined in the proteinFile)
+# Generates a few data structures used for analysis (Names, ProtInfo, and CG)
+# Output is optional and determined by the parameters
 #==============================================================================
 def gather_clusters_case_ZL(proteinFile = "Backbones_4.csv", 
                       clusterFile = "Plasmids20-200kb-6-9-2016_Clusters.tab",
-                      outfile = "ClusterGroups.csv",
-                      heatmap = False):
+                      dateForOutput = "today.csv",
+                      makeclusterfile = True,
+                      makesummarytable = True,
+                      makeheatmapdata = True):
     import csv
 
     cRows = [] # Rows which contain a cluster summary
@@ -267,6 +276,8 @@ def gather_clusters_case_ZL(proteinFile = "Backbones_4.csv",
     bad = ["trans","recomb","integ","resist","tnp","tetracy","lactam","ins"]
     well_studied = ["pNDM-1_Dok01", "F", "RP4", "R751", "pRA3", "R7K", "pSK41"]
     
+    # Generate Names and ProtInfo data structures
+    # Warning: This O(N^4) operation may take a while to run.
     with open(proteinFile,"r") as backbones:
         backboneFile = csv.reader(backbones)
         for backboneRow in backboneFile:
@@ -274,49 +285,149 @@ def gather_clusters_case_ZL(proteinFile = "Backbones_4.csv",
             Names.append({})
             ClusterIDs.append(set())
             index += 1
+            # These "proteins" refer to the 4-letter identifier names.
             for protein in backboneRow: 
+                # First iteration: figure out which clusters are relevant.
+                for srow in sRows:
+                    currProt = srow[8] # The name for a cluster, including its plasmid, product / gene, unique ID and Inc Group separated by a delimiter
+                    cid = srow[1]
+                    ProtInfo[currProt] = [srow[2],srow[3],"NONE"] # Prot Info for a prot contains its seq length at 0, identity with cluster at 1, and exemplar ID at 2
+                    if protein in currProt:
+                        ClusterIDs[index].add(cid)
+                    ProtInfo[currProt][2] = which_eq_str(well_studied,currProt.split(":::")[2])
+                   # ProtInfo[currProt][2] = which_eq_str(well_studied,"_".join(currProt.split("_")[2:-1]))
+                # Second iteration: add all the proteins from these clusters.
                 for srow in sRows:
                     currProt = srow[8]
                     cid = srow[1]
-                    ProtInfo[currProt] = [srow[2],srow[3],0]
-                    if protein in currProt:
-                        ClusterIDs[index].add(cid)
-                    ProtInfo[currProt][2] = which_eq_str(well_studied,currProt.split("_")[2])
                     if cid in ClusterIDs[index]:
                         try:
                             Names[index][cid].add(currProt)
                         except KeyError:
                             Names[index][cid] = set()
-                            Names[index][cid].add(currProt)   
-    
+                            Names[index][cid].add(currProt)
+                            
+    # Prepare data for an output format in "CG" data structure
     CG = []
+    for i in range(len(Names)):
+        for j in Names[i]:
+            rows = []
+            kcount =0
+            # Determine if there is an exemplar in this cluster.
+            exemplarForClusterJ = "NONE"
+            for k in Names[i][j]:
+                # Problem: assumes only one exemplar for each cluster.
+                exemplarForClusterJ = which_eq_str(well_studied,k.split(":::")[2])
+                if exemplarForClusterJ != "NONE":
+                    break
+            # Append relevant information to each row.
+            for k in Names[i][j]:
+                row = []
+                row.append(titles[i])   # Append 4-letter name
+                row.append(j)   # Append Cluster ID
+                crPrInfo = k.split(":::")
+                protName = crPrInfo[0]
+                incGroup = crPrInfo[1]
+                plasName = crPrInfo[2]
+                uniqueID = crPrInfo[-1] # the third index. -1 was used to prevent errors
+                row.append(protName)
+                row.append(incGroup)
+                row.append(plasName)
+                row.append(uniqueID)
+                row.append(ProtInfo[k][0])  # Append Seq Length
+                row.append(ProtInfo[k][1])  # Append Identity
+                
+                # Determine whether protein "k" has been grouped with an exemplar.
+                if ProtInfo[k][2] == "NONE":
+                    if exemplarForClusterJ != "NONE":
+                        ProtInfo[k][2] = "~"+exemplarForClusterJ
+                    
+                row.append(ProtInfo[k][2])  # Append exemplar identifier
+                rows.append(row)
+                kcount += 1
+            #print "Upper:"+str(k)+" "+str(kcount)
+            rows.sort(key=lambda x: int(x[6]))
+            for row in reversed(rows):
+                CG.append(row)
+                    
+    # Optional: create various output file based on the collected data.
+    if makeclusterfile:
+        generate_cluster_file(CG, "ClusterGroups_"+dateForOutput)
+        
+    if makesummarytable:
+        generate_summary_statistics(Names,ProtInfo,titles,well_studied, "summary_"+dateForOutput)
+        
+    if makeheatmapdata:
+        Pre_heat_map_table(CG, "matrixData_"+dateForOutput)
+    
+def generate_cluster_file(CG, outfile):
     with open(outfile, "w") as out:
         Writer = csv.writer(out)
-        for i in range(len(Names)):
-            for j in Names[i]:
-                rows = []
-                for k in Names[i][j]:
-                    row = []
-                    row.append(titles[i])   # Append 4-letter name
-                    row.append(j)   # Append Cluster ID
-                    crPrInfo = k.split("_")
-                    protName = crPrInfo[0]
-                    incGroup = crPrInfo[1]
-                    plasName = crPrInfo[2]
-                    uniqueID = crPrInfo[-1]
-                    row.append(protName)
-                    row.append(incGroup)
-                    row.append(plasName)
-                    row.append(uniqueID)
-                    row.append(ProtInfo[k][0])  # Append Seq Length
-                    row.append(ProtInfo[k][1])  # Append Identity
-                    row.append(ProtInfo[k][2])  # Append exemplar identifier
-                    rows.append(row)
-                rows.sort(key=lambda x: int(x[6]))
-                for row in reversed(rows):
-                    Writer.writerow(row)
-                    CG.append(row)
-    return CG
+        Writer.writerows(CG)
+    
+def generate_summary_statistics(Names, ProtInfo, titles, well_studied, outfile):
+    # Generate summary statistics
+    rows = []
+    for i in range(len(Names)):
+        row = []  
+        row.append(titles[i])
+        countClust = 0
+        countGenes = 0
+        relevantClusterIDs = []
+        for clusterID in Names[i].keys():
+            for protein in Names[i][clusterID]:
+                if (any_eq_str(well_studied,protein.split(":::")[2])):
+                    relevantClusterIDs.append(clusterID)
+                    countClust += 1
+                    countGenes += len(Names[i][clusterID])
+                    break
+        
+        # Calculate the mean protein length and the standard deviation
+        # of protein length 
+        # for all genes across all clusters within a prot (that are grouped wtih a WS)
+        
+        # get the relevant proteins
+        relevantProts = []
+        for clusterID in relevantClusterIDs:
+            for prot in Names[i][clusterID]:
+                relevantProts.append(prot)
+        
+        # get all the relevant lengths.
+        SeqLengths = [int(ProtInfo[prot][0]) for prot in relevantProts]
+        
+        sd = StanDevi(SeqLengths)
+            
+        row.append(countClust)
+        row.append(countGenes)
+        row.append(round((countGenes / float(countClust)),2)) # Mean num genes per cluster
+        row.append(round((sum(SeqLengths) / float(len(SeqLengths))),2)) # Mean / average seqLength
+        row.append(round(sd,2)) # Standard Deviation of SeqLengths
+        
+        # Data pertaining to all genes
+        row.append(titles[i]) # 4 letter name of this backbone gene
+        row.append(len(Names[i])) # number of clusters for this backbone gene
+        numGenes = 0 # number of genes in ALL clusters for this backbone gene
+        for clusterID in Names[i].keys():
+            numGenes += len(Names[i][clusterID])
+        
+        protList = [[int(ProtInfo[prot][0]) for prot in Names[i][cid]] for cid in Names[i].keys()]
+        
+        bigList = []
+        
+        for list in protList:
+            bigList+=list
+        
+        print "Lower"+str(titles[i])+" "+str(numGenes)
+        row.append(numGenes)
+        row.append(round((float(numGenes) / len(Names[i])),2)) # mean num genes per cluster
+        row.append(round((sum(bigList) / float(len(bigList))),2))
+        row.append(round(StanDevi(bigList),2))
+        rows.append(row)
+        
+    # Write summary statistics
+    with open(outfile, "w") as out:
+        Writer = csv.writer(out)
+        Writer.writerows(rows)
 
 #========================================================================
 # Method for generating heat map in R (1/11/2018) - ZL
@@ -365,16 +476,15 @@ def Pre_heat_map_table(CG, outfile):
 
 if __name__=="__main__":
 
-    proj = "Plasmids20-200kb-6-9-2016"
+    proj = "Plasmids20-200kb-1-22-2018"
     #extract_plnames_from_file(proj+".gb")
-#==============================================================================
-# Had to modify code to work on a MAC
-#  there should be ~4349 plasmids and ~328435 sequences, but without the update there were only ~2300 plasmids
-#==============================================================================
     #StripCDSAddInc(proj+".gb",proj+".csv")
     
-    #os.system('usearch.exe -cluster_fast '+proj+'AA.fa -id 0.7 -target_cov 0.7 -centroids clust_'+proj+'.fasta -uc '+proj+'_Clusters.tab -userfields query+target+id+ql+tl+alnlen+qcov+tcov')
-    CG = gather_clusters_case_ZL(proteinFile = "Backbones_6-13-2017.csv",
-                      clusterFile = "Plasmids20-200kb-6-9-2016_Clusters.tab",
-                      outfile = "ClusterGroups_1-10-2018_1.csv")
-    Pre_heat_map_table(CG, "matrixData_1-11-2018_1.csv")
+    #os.system('usearch.exe -cluster_fast '+proj+'AA.fa -id 0.5 -target_cov 0.7 -centroids clust_'+proj+'.fasta -uc '+proj+'_Clusters.tab -userfields query+target+id+ql+tl+alnlen+qcov+tcov')
+    gather_clusters_case_ZL(  proteinFile = "Backbones_6-13-2017.csv",
+                              clusterFile = "Plasmids20-200kb-1-22-2018_Clusters.tab",
+                              dateForOutput = "2-5-2018_2.csv",
+                              makeclusterfile = False,
+                              makesummarytable = True,
+                              makeheatmapdata = False
+                           )
