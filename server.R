@@ -324,16 +324,16 @@ shinyServer(function(input, output) {
     ))
     tree <- read.tree(fpath)
     ggtree(tree) + geom_tiplab(color = "purple",
-                               hjust = 1.0,
+                               hjust = 0.0,
                                vjust = -0.75) +
       geom_nodepoint(color = "#b5e521",
                      alpha = 3 / 8,
                      size = 8) +
       geom_tippoint(color = "purple",
                     shape = 20,
-                    size = 4)
+                    size = 4) + xlim_expand(0.4, panel = "default")
     
-  },height = getHeight())
+  },width = 'auto', height = getHeight())
   
   
   
@@ -343,12 +343,12 @@ shinyServer(function(input, output) {
   
   content = function(file) {
     seqAlign <-
-      read.fasta(paste0("SeqAlignments/", input$variable, ".faa"), "AA")
+      read.fasta(paste0("SeqAlignments_bycluster/", input$variable, "_", input$clusterNumMSA,".faa"), "AA")
     write.fasta(seqAlign, names = attr(seqAlign, "name"), file)
   }, contentType = "text/faa")
 
 
-  output$Seqs <- downloadHandler(filename = paste0(input$variable,".faa"),
+  output$Seqs <- downloadHandler(filename = function() {paste0(input$variable,".faa")},
                                 
                                 content = function(file) {
                                   if (input$refOnly == "All")
@@ -381,6 +381,16 @@ shinyServer(function(input, output) {
       filenames <- gsub(".nwk","",filenames)
       numOptions <- gsub("^.*_","",filenames)
       selectInput("clusterNum", "Cluster ID:",choices=numOptions)
+    }
+  )
+  
+  output$clustNumMSA <- renderUI(
+    {
+      filenames <- list.files("./SeqAlignments_bycluster/")
+      filenames <- filenames[which(grepl(input$variable,filenames))]
+      filenames <- gsub(".faa","",filenames)
+      numOptions <- gsub("^.*_","",filenames)
+      selectInput("clusterNumMSA", "Cluster ID:",choices=numOptions)
     }
   )
 })

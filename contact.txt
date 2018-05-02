@@ -1,0 +1,24 @@
+<p>
+<b>
+Contact Info / App Info
+</b>
+</p>
+
+<p>
+<a href = "https://github.com/rbotts/ProteinNaming">
+Click here to get all of the Python and R Code that was used to make this app (GitHub link).
+</a>
+</p>
+
+<p>
+<b>For questions and requests, contact:</b>
+RyanBotts@pointloma.edu
+</p>
+
+<p>
+<i>
+Software Developer: Zac Lindsey
+<br>
+Point Loma Nazarene University, 2016-2018
+</i>
+</p>

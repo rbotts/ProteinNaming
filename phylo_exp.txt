@@ -3,15 +3,6 @@ Summary
 </h3>
 
 <p>
-1. Representative sequences (centroids) from each protein family were selected for each backbone protein.
-</p>
-
-<p>
-2. The representative sequences for each backbone protein were muscle-aligned 
-using the <a href="https://bioconductor.org/packages/release/bioc/html/msa.html"><b>msa</b></a> package in R.
-</p>
-
-<p>
-3. Phylogenetic trees were computed on the alignments using the
+Phylogenetic trees were computed on the alignments using the
 <a href="https://cran.r-project.org/web/packages/ape/index.html"><b>ape</b></a> package in R.
 </p>

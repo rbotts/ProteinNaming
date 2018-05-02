@@ -44,7 +44,7 @@ shinyUI(fluidPage(
 )
     ),
 
-h4("Plasmid Backbone Groups Visualization Tool (last updated 3/7/18)"),
+h4("Plasmid Backbone Groups Visualization Tool (last updated 3/29/18)"),
 selectInput("variable", label = NULL,
             choices = names(setNames(
               unique(Descriptions$V1),
@@ -217,10 +217,11 @@ tabsetPanel(
     h5(
       "Proteins with more than 100 families may not have alignments due to memory constraints."
     ),
+    uiOutput("clustNumMSA"),
     downloadButton("Align", "Download alignment"),
     br(),
     h3("Summary"),
-    HTML("<p>Each alignment file contains a <a href = 'https://doi.org/10.1093/nar/gkh340'>MUSCLE</a> alignment of the representative sequences from each protein family.<p>")
+    HTML("<p>Each file contains a <a href = 'https://doi.org/10.1093/nar/gkh340'>MUSCLE</a> multiple sequence alignment of the proteins from each protein family, allowing the user to view potential evolutionary relationships.<p>")
   ),
   tabPanel(
     HTML("<b>4. Phylogenetic trees</b>"),
@@ -257,7 +258,10 @@ tabsetPanel(
         ),
       tabPanel(HTML("<i>5b. Citations</i>"),
                HTML(readChar("citations.txt", file.info("citations.txt")$size))
-               )
+               ),
+      tabPanel(HTML("<i>5c. Contact Info & App Maintenance</i>"),
+               HTML(readChar("contact.txt", file.info("contact.txt")$size))
+      )
       )
     )
   # tabPanel(HTML("<b>6. Backbone gene reference file</b>"),
